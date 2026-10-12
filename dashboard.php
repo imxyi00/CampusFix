@@ -122,6 +122,7 @@ function progress_label(string $current): string {
                 <span class="eyebrow">CAMPUS SUPPORT</span>
                 <h2>Need to report a problem?</h2>
                 <p class="muted">The CampusFix process begins when a user submits a facility or service request with the necessary details. Administrative staff reviews the request and assigns it to the appropriate maintenance or ITSO personnel. The assigned personnel handles the concern and updates its status. The requester can track the progress until the request is completed and recorded in the system.</p>
+                <a class="text-link" href="help_support.php">Visit Help &amp; Support</a>
          </div>
 
         <section class="dashboard-two-col">

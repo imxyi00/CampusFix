@@ -14,6 +14,10 @@
             <?php elseif (in_array($_SESSION["role"], ["maintenance", "itso"], true)): ?>
                 <a href="assigned_requests.php">Assigned Requests</a>
             <?php endif; ?>
+            <?php if (in_array($_SESSION["role"], ["admin_staff", "system_admin"], true)): ?>
+                <a href="reports.php">Reports</a>
+            <?php endif; ?>
+            <a href="help_support.php">Help &amp; Support</a>
             <a class="nav-logout" href="logout.php">Logout</a>
         </div>
     </div>
