@@ -12,3 +12,10 @@ For an existing installation, run `tracking_migration.sql` once against the `cam
 ## Help and reports
 
 Signed-in users can open **Help & Support** from the navigation bar for FAQs and links to the request workflow. Administrative Staff and System Administrators also have **Reports**, with inclusive start/end date filters, request volume and category charts, personnel performance, and a filtered CSV export. The current schema has no satisfaction ratings, so reports show ratings as unavailable. Resolution duration uses the resolved-stage timestamp when available and falls back to `updated_at` for older requests without stage history.
+
+## Firebase Real-time Live Tracking & Push Alerts
+
+CampusFix uses a hybrid architecture with Firebase Cloud Firestore for real-time tracking without full page reloads:
+- **Primary source of truth**: MySQL database manages all relational records and permissions.
+- **Real-time broadcast**: When a request is created, updated, or deleted (`submit_request.php`, `update_request.php`, `delete_request.php`), `firebase.php` automatically syncs the state to Cloud Firestore via service-account-authenticated REST API.
+- **Client listeners**: `tracking.php`, `my_requests.php`, and `dashboard.php` use `assets/firebase-tracking.js` to listen for snapshot updates in real time, displaying live timeline updates, in-app toast alerts, and optional desktop push notifications.

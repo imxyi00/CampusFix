@@ -63,7 +63,7 @@ $stages = [
 </head>
 <body>
 <?php include "partials/nav.php"; ?>
-<main class="container tracking-page">
+<main class="container tracking-page" id="trackingContainer" data-request-id="<?= $request ? (int)$request["id"] : 0 ?>" data-initial-status="<?= $request ? tracking_escape($request["status"]) : "" ?>">
     <div class="page-heading">
         <div>
             <span class="eyebrow">REQUEST TRACKING</span>
@@ -80,22 +80,22 @@ $stages = [
                     <span class="eyebrow">REQUEST DETAILS</span>
                     <h2><?= tracking_escape($request["title"]) ?></h2>
                 </div>
-                <span class="status status-<?= strtolower(str_replace(" ", "-", tracking_escape($request["status"]))) ?>"><?= tracking_escape($request["status"]) ?></span>
+                <span id="requestStatusBadge" class="status status-<?= strtolower(str_replace(" ", "-", tracking_escape($request["status"]))) ?>"><?= tracking_escape($request["status"]) ?></span>
             </div>
             <div class="tracking-info-grid">
                 <div><strong>Request ID</strong><span>#<?= (int)$request["id"] ?></span></div>
                 <div><strong>Category</strong><span><?= tracking_escape($request["category"]) ?></span></div>
                 <div><strong>Location</strong><span><?= tracking_escape($request["location"]) ?></span></div>
-                <div><strong>Assigned Personnel</strong><span><?= tracking_escape($request["assigned_name"] ?? "Not assigned") ?></span></div>
+                <div><strong>Assigned Personnel</strong><span id="assignedPersonnelName"><?= tracking_escape($request["assigned_name"] ?? "Not assigned") ?></span></div>
                 <div><strong>Date Submitted</strong><span><?= tracking_escape(tracking_time($request["created_at"])) ?></span></div>
-                <div><strong>Last Updated</strong><span><?= tracking_escape(tracking_time($request["updated_at"])) ?></span></div>
+                <div><strong>Last Updated</strong><span id="lastUpdatedTime"><?= tracking_escape(tracking_time($request["updated_at"])) ?></span></div>
             </div>
         </section>
 
         <section class="panel tracking-progress-panel" aria-labelledby="progress-heading">
             <div class="panel-title-row">
                 <div><span class="eyebrow">PROGRESS UPDATES</span><h2 id="progress-heading">Request timeline</h2></div>
-                <span class="tracking-refresh-note">Updates automatically every minute</span>
+                <span class="tracking-refresh-note" id="liveStatusNote">Connecting live updates...</span>
             </div>
             <ol class="tracking-timeline">
                 <?php foreach ($stages as $index => $stage):
@@ -105,7 +105,7 @@ $stages = [
                         || ($request["status"] === "Completed");
                     $state = $isDone ? "done" : ($isCurrent ? "current" : "upcoming");
                 ?>
-                    <li class="tracking-stage <?= $state ?>">
+                    <li class="tracking-stage <?= $state ?>" data-stage="<?= $stage["key"] ?>">
                         <span class="tracking-marker" aria-hidden="true"><?= $isDone ? "✓" : ($isCurrent ? "●" : ($index + 1)) ?></span>
                         <div class="tracking-stage-content">
                             <strong><?= tracking_escape($stage["label"]) ?></strong>
@@ -121,8 +121,8 @@ $stages = [
         <section class="panel"><p class="muted">You can only track requests submitted from your account.</p></section>
     <?php endif; ?>
 </main>
-<script>
-    window.setTimeout(() => window.location.reload(), 60000);
-</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="assets/firebase-tracking.js"></script>
 </body>
 </html>

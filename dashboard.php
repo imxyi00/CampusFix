@@ -209,5 +209,11 @@ function progress_label(string $current): string {
         <section class="panel accent-panel"><span class="eyebrow">TASK MANAGEMENT</span><h2>Assigned Requests</h2><p class="muted">Open your assigned work to review request details and update its progress.</p><a class="btn secondary" href="assigned_requests.php">Open Assigned Requests</a></section>
     <?php endif; ?>
 </main>
+<?php if ($role === "requester"): ?>
+<div id="firebaseLiveWatcher" data-requester-id="<?= (int)$userId ?>"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="assets/firebase-tracking.js"></script>
+<?php endif; ?>
 </body>
 </html>

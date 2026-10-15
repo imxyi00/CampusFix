@@ -16,6 +16,7 @@ $stmt = $conn->prepare("DELETE FROM requests WHERE id = ?");
 $stmt->bind_param("i", $requestId);
 if ($stmt->execute()) {
     if (!empty($row["photo"])) { $path = __DIR__ . "/uploads/" . basename($row["photo"]); if (is_file($path)) @unlink($path); }
+    firebase_delete_request($requestId);
     header("Location: {$returnTo}" . (str_contains($returnTo, "?") ? "&" : "?") . "success=" . urlencode("Request #{$requestId} was deleted.")); exit;
 }
 header("Location: {$returnTo}" . (str_contains($returnTo, "?") ? "&" : "?") . "error=" . urlencode("Unable to delete the request.")); exit;

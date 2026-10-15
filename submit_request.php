@@ -52,6 +52,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $stmt->bind_param("isssss", $_SESSION["user_id"], $title, $category, $location, $description, $photo);
 
         if ($stmt->execute()) {
+            $newRequestId = (int)$conn->insert_id;
+            firebase_sync_request_from_db($conn, $newRequestId);
             header("Location: my_requests.php?success=" . urlencode("Request submitted successfully."));
             exit;
         } else {

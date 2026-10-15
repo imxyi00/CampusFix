@@ -53,6 +53,7 @@ if (in_array($role, ["admin_staff", "system_admin"], true)) {
             throw new RuntimeException("Unable to update request progress.");
         }
         $conn->commit();
+        firebase_sync_request_from_db($conn, $requestId);
     } catch (mysqli_sql_exception | RuntimeException $exception) {
         $conn->rollback();
         error_log("CampusFix request update failed: " . $exception->getMessage());
@@ -88,6 +89,7 @@ if (in_array($role, ["maintenance", "itso"], true)) {
             throw new RuntimeException("Unable to save request progress.");
         }
         $conn->commit();
+        firebase_sync_request_from_db($conn, $requestId);
     } catch (mysqli_sql_exception | RuntimeException $exception) {
         $conn->rollback();
         error_log("CampusFix request progress update failed: " . $exception->getMessage());
