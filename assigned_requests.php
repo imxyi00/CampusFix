@@ -64,5 +64,9 @@ $result = $stmt->get_result();
         <?php endwhile; ?>
     </div>
 </main>
+<div id="firebaseLiveWatcher" data-user-id="<?= (int)$_SESSION["user_id"] ?>" data-user-role="<?= htmlspecialchars($_SESSION["role"]) ?>"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="assets/firebase-tracking.js"></script>
 </body>
 </html>

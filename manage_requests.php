@@ -99,4 +99,8 @@ function status_class(string $status): string { return "status-" . strtolower(st
 </main>
 <div class="modal-backdrop" id="deleteModal" hidden><div class="confirm-modal"><button class="modal-close" type="button" id="closeDeleteModal">×</button><span class="eyebrow">PERMANENT ACTION</span><h2>Delete Request?</h2><p>Are you sure you want to delete <strong id="deleteRequestLabel"></strong>?</p><p class="muted">This action cannot be undone and should only be used for incorrect or unwanted records.</p><form action="delete_request.php" method="POST"><input type="hidden" name="request_id" id="deleteRequestId"><input type="hidden" name="return_to" value="manage_requests.php"><div class="modal-actions"><button type="button" class="btn secondary" id="cancelDelete">Cancel</button><button type="submit" class="btn danger-btn">Delete Request</button></div></form></div></div>
 <script src="assets/script.js"></script>
+<div id="firebaseLiveWatcher" data-user-id="<?= (int)$_SESSION["user_id"] ?>" data-user-role="<?= htmlspecialchars($_SESSION["role"]) ?>"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="assets/firebase-tracking.js"></script>
 </body></html>

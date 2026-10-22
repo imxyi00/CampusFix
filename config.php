@@ -15,6 +15,7 @@ if ($conn->connect_error) {
 $conn->set_charset("utf8mb4");
 
 require_once __DIR__ . "/firebase.php";
+require_once __DIR__ . "/mail.php";
 
 function require_login(): void {
     global $conn;
@@ -57,5 +58,18 @@ function role_label(string $role): string {
         "system_admin" => "System Administrator",
         default => "Requester"
     };
+}
+
+function validate_password_rules(string $password): ?string {
+    if (
+        strlen($password) < 8 ||
+        !preg_match('/[A-Z]/', $password) ||
+        !preg_match('/[a-z]/', $password) ||
+        !preg_match('/[0-9]/', $password) ||
+        !preg_match('/[^A-Za-z0-9]/', $password)
+    ) {
+        return "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.";
+    }
+    return null;
 }
 ?>

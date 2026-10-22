@@ -21,6 +21,14 @@ if (!in_array($status, $allowedStatuses, true)) {
     exit;
 }
 
+$prevStmt = $conn->prepare("SELECT status, assigned_to FROM requests WHERE id = ? LIMIT 1");
+$prevStmt->bind_param("i", $requestId);
+$prevStmt->execute();
+$prevRow = $prevStmt->get_result()->fetch_assoc();
+$prevStmt->close();
+$oldStatus = (string)($prevRow["status"] ?? "Pending");
+$oldAssignedTo = isset($prevRow["assigned_to"]) && $prevRow["assigned_to"] !== null ? (int)$prevRow["assigned_to"] : null;
+
 if (in_array($role, ["admin_staff", "system_admin"], true)) {
     // Only authorized managers can assign or reassign requests.
     $assignedId = null;
@@ -54,6 +62,7 @@ if (in_array($role, ["admin_staff", "system_admin"], true)) {
         }
         $conn->commit();
         firebase_sync_request_from_db($conn, $requestId);
+        notify_request_updated($conn, $requestId, $oldStatus, $oldAssignedTo, $status, $assignedId);
     } catch (mysqli_sql_exception | RuntimeException $exception) {
         $conn->rollback();
         error_log("CampusFix request update failed: " . $exception->getMessage());
@@ -90,6 +99,7 @@ if (in_array($role, ["maintenance", "itso"], true)) {
         }
         $conn->commit();
         firebase_sync_request_from_db($conn, $requestId);
+        notify_request_updated($conn, $requestId, $oldStatus, $oldAssignedTo, $status, $userId);
     } catch (mysqli_sql_exception | RuntimeException $exception) {
         $conn->rollback();
         error_log("CampusFix request progress update failed: " . $exception->getMessage());

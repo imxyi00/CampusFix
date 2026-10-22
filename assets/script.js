@@ -184,3 +184,143 @@ if (reportCharts.length) {
         resizeTimer = window.setTimeout(redrawCharts, 120);
     });
 }
+
+
+/* ============================================================
+   PASSWORD VISIBILITY & RULE FEEDBACK
+   ============================================================ */
+document.querySelectorAll(".password-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const wrap = btn.closest(".password-wrap");
+        const input = wrap ? wrap.querySelector("input") : null;
+        if (!input) return;
+
+        const isHidden = input.type === "password";
+        input.type = isHidden ? "text" : "password";
+        btn.classList.toggle("is-visible", isHidden);
+        btn.setAttribute("aria-pressed", String(isHidden));
+        btn.setAttribute("aria-label", isHidden ? "Hide password" : "Show password");
+
+        const openIcon = btn.querySelector(".eye-open");
+        const closedIcon = btn.querySelector(".eye-closed");
+        if (openIcon) openIcon.hidden = isHidden;
+        if (closedIcon) closedIcon.hidden = !isHidden;
+    });
+});
+
+function checkPasswordRules(value) {
+    const missing = [];
+    if (value.length < 8) missing.push("8+ characters");
+    if (!/[A-Z]/.test(value)) missing.push("uppercase letter");
+    if (!/[a-z]/.test(value)) missing.push("lowercase letter");
+    if (!/[0-9]/.test(value)) missing.push("number");
+    if (!/[^A-Za-z0-9]/.test(value)) missing.push("special character");
+    return missing;
+}
+
+document.querySelectorAll("[data-password-validate]").forEach(input => {
+    const mode = input.dataset.passwordValidate;
+    const wrap = input.closest(".password-wrap");
+    const feedback = wrap ? wrap.nextElementSibling : null;
+
+    const updateFeedback = () => {
+        const val = input.value;
+        const missing = checkPasswordRules(val);
+
+        if (!val) {
+            input.classList.remove("input-error", "input-valid");
+            input.setCustomValidity("");
+            if (feedback && feedback.classList.contains("password-feedback")) {
+                feedback.classList.remove("is-error", "is-valid");
+                if (mode === "signin") {
+                    feedback.hidden = true;
+                    feedback.textContent = "";
+                } else {
+                    feedback.hidden = false;
+                    feedback.textContent = "Must be at least 8 characters with uppercase, lowercase, number, and special character.";
+                }
+            }
+            return;
+        }
+
+        if (missing.length > 0) {
+            input.classList.add("input-error");
+            input.classList.remove("input-valid");
+            if (mode === "signup") {
+                input.setCustomValidity("Password must include: " + missing.join(", "));
+            } else {
+                input.setCustomValidity("");
+            }
+            if (feedback && feedback.classList.contains("password-feedback")) {
+                feedback.hidden = false;
+                feedback.classList.add("is-error");
+                feedback.classList.remove("is-valid");
+                feedback.textContent = mode === "signin"
+                    ? "Security rule warning: Follow password rule (missing " + missing.join(", ") + ")."
+                    : "Typing error — missing: " + missing.join(", ") + ".";
+            }
+        } else {
+            input.classList.remove("input-error");
+            input.classList.add("input-valid");
+            input.setCustomValidity("");
+            if (feedback && feedback.classList.contains("password-feedback")) {
+                feedback.hidden = false;
+                feedback.classList.remove("is-error");
+                feedback.classList.add("is-valid");
+                feedback.textContent = "Password follows security rules.";
+            }
+        }
+    };
+
+    input.addEventListener("input", updateFeedback);
+});
+
+document.querySelectorAll("[data-confirm-for]").forEach(confirmInput => {
+    const targetId = confirmInput.dataset.confirmFor;
+    const primaryInput = document.getElementById(targetId);
+    const wrap = confirmInput.closest(".password-wrap");
+    const feedback = wrap ? wrap.nextElementSibling : null;
+
+    if (!primaryInput) return;
+
+    const checkMatch = () => {
+        const val = confirmInput.value;
+        if (!val) {
+            confirmInput.classList.remove("input-error", "input-valid");
+            confirmInput.setCustomValidity("");
+            if (feedback) {
+                feedback.hidden = true;
+                feedback.textContent = "";
+                feedback.classList.remove("is-error", "is-valid");
+            }
+            return;
+        }
+
+        if (val !== primaryInput.value) {
+            confirmInput.classList.add("input-error");
+            confirmInput.classList.remove("input-valid");
+            confirmInput.setCustomValidity("Passwords do not match.");
+            if (feedback) {
+                feedback.hidden = false;
+                feedback.classList.add("is-error");
+                feedback.classList.remove("is-valid");
+                feedback.textContent = "Passwords do not match.";
+            }
+        } else {
+            confirmInput.classList.remove("input-error");
+            confirmInput.classList.add("input-valid");
+            confirmInput.setCustomValidity("");
+            if (feedback) {
+                feedback.hidden = false;
+                feedback.classList.remove("is-error");
+                feedback.classList.add("is-valid");
+                feedback.textContent = "Passwords match.";
+            }
+        }
+    };
+
+    confirmInput.addEventListener("input", checkMatch);
+    primaryInput.addEventListener("input", () => {
+        if (confirmInput.value) checkMatch();
+    });
+});

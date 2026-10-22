@@ -26,6 +26,11 @@ if ($user = $result->fetch_assoc()) {
     }
 }
 
-header("Location: index.php?error=" . urlencode("Invalid email or password."));
+$ruleWarning = validate_password_rules($password);
+$errorMsg = $ruleWarning
+    ? "Invalid email or password. For added security: " . $ruleWarning
+    : "Invalid email or password. Please check your credentials and try again.";
+
+header("Location: index.php?error=" . urlencode($errorMsg));
 exit;
 ?>

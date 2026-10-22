@@ -119,9 +119,10 @@ function firebase_to_firestore_fields(array $data): array {
 function firebase_sync_request_from_db(mysqli $conn, int $requestId): bool {
     try {
         $stmt = $conn->prepare(
-            "SELECT r.*, u.name AS assigned_name
+            "SELECT r.*, u.name AS assigned_name, req_user.name AS requester_name
              FROM requests r
              LEFT JOIN users u ON r.assigned_to = u.id
+             LEFT JOIN users req_user ON r.requester_id = req_user.id
              WHERE r.id = ?"
         );
         $stmt->bind_param("i", $requestId);
@@ -149,13 +150,15 @@ function firebase_sync_request_from_db(mysqli $conn, int $requestId): bool {
         }
 
         $docPayload = [
-            "id"            => (int)$request["id"],
-            "requester_id"  => (int)$request["requester_id"],
-            "title"         => (string)$request["title"],
-            "category"      => (string)$request["category"],
-            "location"      => (string)$request["location"],
-            "status"        => (string)$request["status"],
-            "assigned_name" => (string)($request["assigned_name"] ?? "Not assigned"),
+            "id"             => (int)$request["id"],
+            "requester_id"   => (int)$request["requester_id"],
+            "requester_name" => (string)($request["requester_name"] ?? "Requester"),
+            "assigned_to"    => $request["assigned_to"] !== null ? (int)$request["assigned_to"] : 0,
+            "title"          => (string)$request["title"],
+            "category"       => (string)$request["category"],
+            "location"       => (string)$request["location"],
+            "status"         => (string)$request["status"],
+            "assigned_name"  => (string)($request["assigned_name"] ?? "Not assigned"),
             "created_at"    => (string)$request["created_at"],
             "updated_at"    => (string)$request["updated_at"],
             "stages"        => [

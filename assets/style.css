@@ -1852,3 +1852,98 @@ tbody tr:hover td {
     from { opacity: 0; transform: translateY(18px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+
+/* ============================================================
+   PASSWORD TOGGLE & VALIDATION FEEDBACK
+   ============================================================ */
+.form-panel {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.inline-action-form {
+    display: inline-block;
+    margin: 0;
+}
+
+.password-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-wrap input {
+    padding-right: 44px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color var(--transition), background var(--transition);
+}
+
+.password-toggle:hover {
+    color: var(--text);
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.password-toggle svg[hidden],
+.password-toggle .eye-closed {
+    display: none;
+}
+
+.password-toggle.is-visible .eye-open {
+    display: none;
+}
+
+.password-toggle.is-visible .eye-closed {
+    display: block;
+}
+
+input.input-error {
+    border-color: var(--red) !important;
+    box-shadow: 0 0 0 3px rgba(219, 81, 74, 0.16) !important;
+}
+
+input.input-valid {
+    border-color: var(--green) !important;
+}
+
+.password-feedback {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--muted);
+    margin-top: -4px;
+}
+
+.password-feedback[hidden] {
+    display: none;
+}
+
+.password-feedback.is-error {
+    color: #b42e28;
+    font-weight: 700;
+}
+
+.password-feedback.is-valid {
+    color: #18764a;
+    font-weight: 700;
+}
+
+.required-badge {
+    font-size: 12px;
+    font-weight: 700;
+    color: #b42e28;
+}

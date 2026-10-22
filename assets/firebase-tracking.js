@@ -210,28 +210,67 @@
         });
     }
 
-    // 2. Global live notifications on Dashboard & My Requests
+    // 2. Global live notifications on Dashboard, My Requests, Assigned Requests & Manage Requests
     const liveWatcher = document.getElementById("firebaseLiveWatcher");
     if (liveWatcher) {
-        const requesterId = parseInt(liveWatcher.dataset.requesterId, 10);
-        if (requesterId) {
-            let initialSnapshot = true;
-            db.collection("requests").where("requester_id", "==", requesterId).onSnapshot(snapshot => {
-                if (initialSnapshot) {
-                    initialSnapshot = false;
-                    return;
-                }
+        const userId = parseInt(liveWatcher.dataset.userId || liveWatcher.dataset.requesterId, 10);
+        const userRole = liveWatcher.dataset.userRole || "requester";
 
-                snapshot.docChanges().forEach(change => {
-                    if (change.type === "modified") {
-                        const data = change.doc.data();
-                        showToast(`Request #${data.id || change.doc.id} Updated`, `${data.title}: Status changed to ${data.status}`, "🔔");
-                        sendBrowserNotification(`CampusFix Request Updated`, `#${data.id || change.doc.id} is now ${data.status}`);
+        if (userId) {
+            let initialSnapshot = true;
+
+            if (userRole === "requester") {
+                db.collection("requests").where("requester_id", "==", userId).onSnapshot(snapshot => {
+                    if (initialSnapshot) {
+                        initialSnapshot = false;
+                        return;
                     }
-                });
-            }, err => {
-                console.warn("Firestore watcher error:", err);
-            });
+                    snapshot.docChanges().forEach(change => {
+                        if (change.type === "modified") {
+                            const data = change.doc.data();
+                            const reqId = data.id || change.doc.id;
+                            showToast(`Request #${reqId} Updated`, `${data.title}: Status is now ${data.status}`, "🔔");
+                            sendBrowserNotification(`CampusFix Request Updated`, `#${reqId} is now ${data.status}`);
+                        }
+                    });
+                }, err => console.warn("Firestore requester watcher error:", err));
+            } else if (userRole === "maintenance" || userRole === "itso") {
+                db.collection("requests").where("assigned_to", "==", userId).onSnapshot(snapshot => {
+                    if (initialSnapshot) {
+                        initialSnapshot = false;
+                        return;
+                    }
+                    snapshot.docChanges().forEach(change => {
+                        const data = change.doc.data();
+                        const reqId = data.id || change.doc.id;
+                        if (change.type === "added") {
+                            showToast(`New Task Assigned (#${reqId})`, `${data.title} · ${data.location}`, "🛠️");
+                            sendBrowserNotification(`CampusFix Task Assigned`, `Request #${reqId}: ${data.title}`);
+                        } else if (change.type === "modified") {
+                            showToast(`Task #${reqId} Updated`, `${data.title}: Status is now ${data.status}`, "🔔");
+                            sendBrowserNotification(`CampusFix Task Updated`, `#${reqId} is now ${data.status}`);
+                        }
+                    });
+                }, err => console.warn("Firestore personnel watcher error:", err));
+            } else if (userRole === "admin_staff" || userRole === "system_admin") {
+                db.collection("requests").onSnapshot(snapshot => {
+                    if (initialSnapshot) {
+                        initialSnapshot = false;
+                        return;
+                    }
+                    snapshot.docChanges().forEach(change => {
+                        const data = change.doc.data();
+                        const reqId = data.id || change.doc.id;
+                        if (change.type === "added") {
+                            showToast(`New Request #${reqId}`, `${data.title} (${data.category})`, "📥");
+                            sendBrowserNotification(`New CampusFix Request #${reqId}`, `${data.title} at ${data.location}`);
+                        } else if (change.type === "modified") {
+                            showToast(`Request #${reqId} Updated`, `${data.title}: ${data.status}`, "🔔");
+                            sendBrowserNotification(`CampusFix Request #${reqId}`, `Status: ${data.status}`);
+                        }
+                    });
+                }, err => console.warn("Firestore admin watcher error:", err));
+            }
         }
     }
 })();

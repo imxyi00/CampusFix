@@ -18,30 +18,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if ($title === "" || $category === "" || $location === "" || $description === "") {
         $error = "Please complete all required fields.";
-    }
+    } elseif (!isset($_FILES["photo"]) || $_FILES["photo"]["error"] === UPLOAD_ERR_NO_FILE) {
+        $error = "Photo attachment is required.";
+    } elseif ($_FILES["photo"]["error"] !== UPLOAD_ERR_OK) {
+        $error = "The photo upload failed. Please try again.";
+    } elseif ($_FILES["photo"]["size"] > $maxFileSize) {
+        $error = "Photo must be 5 MB or smaller.";
+    } else {
+        $tmpName = $_FILES["photo"]["tmp_name"];
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($tmpName);
+        $imageInfo = @getimagesize($tmpName);
 
-    if (empty($error) && isset($_FILES["photo"]) && $_FILES["photo"]["error"] !== UPLOAD_ERR_NO_FILE) {
-        if ($_FILES["photo"]["error"] !== UPLOAD_ERR_OK) {
-            $error = "The photo upload failed. Please try again.";
-        } elseif ($_FILES["photo"]["size"] > $maxFileSize) {
-            $error = "Photo must be 5 MB or smaller.";
+        if (!isset($allowedMimeTypes[$mime]) || $imageInfo === false) {
+            $error = "Only valid JPG, PNG, and WEBP images are allowed.";
         } else {
-            $tmpName = $_FILES["photo"]["tmp_name"];
-            $mime = (new finfo(FILEINFO_MIME_TYPE))->file($tmpName);
-            $imageInfo = @getimagesize($tmpName);
-
-            if (!isset($allowedMimeTypes[$mime]) || $imageInfo === false) {
-                $error = "Only valid JPG, PNG, and WEBP images are allowed.";
+            $uploadDir = __DIR__ . "/uploads/";
+            if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
+                $error = "Unable to prepare the upload folder.";
             } else {
-                $uploadDir = __DIR__ . "/uploads/";
-                if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
-                    $error = "Unable to prepare the upload folder.";
-                } else {
-                    $photo = bin2hex(random_bytes(16)) . "." . $allowedMimeTypes[$mime];
-                    if (!move_uploaded_file($tmpName, $uploadDir . $photo)) {
-                        $error = "Unable to save the uploaded photo.";
-                        $photo = null;
-                    }
+                $photo = bin2hex(random_bytes(16)) . "." . $allowedMimeTypes[$mime];
+                if (!move_uploaded_file($tmpName, $uploadDir . $photo)) {
+                    $error = "Unable to save the uploaded photo.";
+                    $photo = null;
                 }
             }
         }
@@ -54,6 +52,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if ($stmt->execute()) {
             $newRequestId = (int)$conn->insert_id;
             firebase_sync_request_from_db($conn, $newRequestId);
+            notify_request_submitted($conn, $newRequestId);
             header("Location: my_requests.php?success=" . urlencode("Request submitted successfully."));
             exit;
         } else {
@@ -106,9 +105,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <label>Description</label>
             <textarea name="description" rows="5" maxlength="2000" required></textarea>
 
-            <label>Photo Attachment <span class="optional">(optional)</span></label>
-            <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" id="photo">
-            <small class="field-help">JPG, PNG, or WEBP only. Maximum file size: 5 MB.</small>
+            <label>Photo Attachment <span class="required-badge">(required)</span></label>
+            <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" id="photo" required>
+            <small class="field-help">Required. JPG, PNG, or WEBP only. Maximum file size: 5 MB.</small>
 
             <div id="photoPreview"></div>
 

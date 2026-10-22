@@ -17,7 +17,7 @@ CREATE TABLE requests (
     category VARCHAR(100) NOT NULL,
     location VARCHAR(150) NOT NULL,
     description TEXT NOT NULL,
-    photo VARCHAR(255) NULL,
+    photo VARCHAR(255) NOT NULL,
     assigned_to INT NULL,
     status ENUM('Pending','Assigned','In Progress','Completed') NOT NULL DEFAULT 'Pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -43,9 +43,30 @@ CREATE TABLE request_progress (
         ON DELETE CASCADE
 );
 
--- SECURITY NOTE:
--- Public registration creates requester accounts only.
--- Privileged roles must be created by a System Administrator through Manage Users.
--- For the first local prototype admin, you may register a normal account first,
--- then run the following manually in phpMyAdmin, replacing the email:
--- UPDATE users SET role = 'system_admin' WHERE email = 'your-admin-email@example.com';
+CREATE TABLE password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_token_hash (token_hash),
+    CONSTRAINT fk_reset_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
+-- ============================================================
+-- MOCKUP ACCOUNTS (1 per role)
+-- Default password for all mockup accounts: CampusFix@123
+-- ============================================================
+INSERT INTO users (name, email, password, role) VALUES
+('Juan Dela Cruz', 'requester.demo@tip.edu.ph', '$2y$10$186COlJP51Dm0uXzM7GwguJeSpjfoGKJWVCKDoqk4V4uB6F1IOyEq', 'requester'),
+('Maria Clara', 'adminstaff.demo@tip.edu.ph', '$2y$10$186COlJP51Dm0uXzM7GwguJeSpjfoGKJWVCKDoqk4V4uB6F1IOyEq', 'admin_staff'),
+('Pedro Penduko', 'maintenance.demo@tip.edu.ph', '$2y$10$186COlJP51Dm0uXzM7GwguJeSpjfoGKJWVCKDoqk4V4uB6F1IOyEq', 'maintenance'),
+('Jose Rizal', 'itso.demo@tip.edu.ph', '$2y$10$186COlJP51Dm0uXzM7GwguJeSpjfoGKJWVCKDoqk4V4uB6F1IOyEq', 'itso'),
+('Andres Bonifacio', 'sysadmin.demo@tip.edu.ph', '$2y$10$186COlJP51Dm0uXzM7GwguJeSpjfoGKJWVCKDoqk4V4uB6F1IOyEq', 'system_admin')
+ON DUPLICATE KEY UPDATE
+    name = VALUES(name),
+    password = VALUES(password),
+    role = VALUES(role);

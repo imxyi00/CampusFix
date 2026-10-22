@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Open CampusFix in Browser (XAMPP)",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost/CampusFix/index.php",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
+            "name": "Open CampusFix in Edge (XAMPP)",
+            "type": "msedge",
+            "request": "launch",
+            "url": "http://localhost/CampusFix/index.php",
+            "webRoot": "${workspaceFolder}"
+        }
+    ]
+}
