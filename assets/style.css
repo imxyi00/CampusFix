@@ -1066,6 +1066,25 @@ textarea {
     box-shadow: var(--shadow);
 }
 
+.requester-requests-table {
+    max-height: 400px;
+    overflow: auto;
+}
+
+body.requester-requests-page {
+    scrollbar-width: none;
+}
+
+body.requester-requests-page::-webkit-scrollbar {
+    display: none;
+}
+
+.requester-requests-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
