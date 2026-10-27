@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . "/config.php";
+
 $records = [
     [
         'id' => '#CF-1089',
@@ -47,6 +49,7 @@ $records = [
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="assets/cflogo.png">
   <title>CampusFix - Facility Request Records</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -78,6 +81,10 @@ $records = [
       margin: 0;
       padding: 0;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    html {
+      overflow-x: clip;
     }
 
 
@@ -457,13 +464,64 @@ $records = [
       .navbar {
         flex-direction: column;
         gap: 12px;
-        padding: 12px 20px;
+        padding: 12px clamp(12px, 4vw, 20px);
+      }
+      .nav-menu {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 0;
+      }
+      .nav-menu li {
+        flex: 0 0 auto;
+      }
+      .nav-menu form {
+        margin: 0;
+      }
+      .app-container {
+        padding: 28px clamp(12px, 4vw, 20px);
+      }
+      .main-title {
+        font-size: clamp(28px, 8vw, 36px);
       }
       .filter-row {
         flex-direction: column;
       }
       .select-filter {
         width: 100%;
+      }
+      .records-card {
+        padding: 18px;
+      }
+      .record-item {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 15px;
+      }
+      .record-left {
+        min-width: 0;
+        flex: 1 1 200px;
+      }
+      .record-right {
+        max-width: 100%;
+        flex-wrap: wrap;
+      }
+      .records-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .filter-card,
+      .records-card {
+        padding: 14px;
+      }
+      .record-item {
+        padding: 13px;
       }
     }
   </style>
@@ -481,11 +539,12 @@ $records = [
     </a>
    
     <ul class="nav-menu">
+      <li><a href="dashboard.php" class="nav-link nav-back" data-history-back>← Back</a></li>
       <li><a href="dashboard.php" class="nav-link">Dashboard</a></li>
       <li><a href="manage_requests.php" class="nav-link">Manage Requests</a></li>
       <li><a href="manage_users.php" class="nav-link">Manage Users</a></li>
       <li><a href="records.php" class="nav-link active">Records</a></li>
-      <li><a href="logout.php" class="nav-link logout-btn">Logout</a></li>
+      <li><form action="logout.php" method="POST" onsubmit="return confirm('Are you sure you want to log out of CampusFix?');"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, "UTF-8") ?>"><button type="submit" class="nav-link logout-btn">Logout</button></form></li>
     </ul>
   </nav>
 
@@ -544,12 +603,11 @@ $records = [
               <div class="record-details">
                 <span class="record-id"><?= htmlspecialchars($row['id']); ?></span>
                 <div class="record-title-text"><?= htmlspecialchars($row['title']); ?></div>
-                <div class="record-subtext"><?= htmlspecialchars(
-row['location']);?>•Assigned:<?=htmlspecialchars(row['assigned']); ?></div>
+                <div class="record-subtext"><?= htmlspecialchars($row['location']); ?> · Assigned: <?= htmlspecialchars($row['assigned']); ?></div>
               </div>
             </div>
             <div class="record-right">
-              <span class="badge <?= htmlspecialchars(row['badgeclass']);?>"><?=htmlspecialchars(row['status']); ?></span>
+              <span class="badge <?= htmlspecialchars($row['badge_class']); ?>"><?= htmlspecialchars($row['status']); ?></span>
               <i class="fa-solid fa-chevron-right arrow-icon"></i>
             </div>
           </a>
@@ -602,6 +660,3 @@ row['location']);?>•Assigned:<?=htmlspecialchars(row['assigned']); ?></div>
 
 </body>
 </html>
-
-
-

@@ -41,7 +41,7 @@ switch ($role) {
             ],
             [
                 "question" => "How do I update the status of a repair I am working on?",
-                "answer" => 'In <a href="assigned_requests.php">Assigned Requests</a>, change the request status to <strong>In Progress</strong> when you begin on-site work, and update it to <strong>Completed</strong> once the facility issue is resolved. Changes notify the requester in real time.'
+                "answer" => 'In <a href="assigned_requests.php">Assigned Requests</a>, open <strong>Details &amp; Update</strong>, change the status to <strong>In Progress</strong> when work begins, and attach a completion photo before choosing <strong>Completed</strong>. Changes notify the requester in real time.'
             ],
             [
                 "question" => "What if a request assigned to me belongs to ITSO instead?",
@@ -65,11 +65,11 @@ switch ($role) {
             ],
             [
                 "question" => "How do I record progress on an IT support ticket?",
-                "answer" => 'In <a href="assigned_requests.php">Assigned Requests</a>, set the status to <strong>In Progress</strong> while diagnosing or configuring equipment, then mark it <strong>Completed</strong> when the workstation, network, or AV setup is operational.'
+                "answer" => 'In <a href="assigned_requests.php">Assigned Requests</a>, open <strong>Details &amp; Update</strong>, set the status to <strong>In Progress</strong> while diagnosing or configuring equipment, then attach a completion photo before marking the job <strong>Completed</strong>.'
             ],
             [
                 "question" => "Can I view the photo attached by the requester?",
-                "answer" => 'Yes. Every request requires a photo attachment, which appears directly on the request card in <a href="assigned_requests.php">Assigned Requests</a> to help you inspect error screens or hardware issues before arriving.'
+                "answer" => 'Yes. Open <strong>Details &amp; Update</strong> on an assigned request to view the requester photo and full description. Attach a completion photo there before setting the request to <strong>Completed</strong>.'
             ],
             [
                 "question" => "What if a ticket requires electrical or facility maintenance first?",
@@ -113,11 +113,11 @@ switch ($role) {
             ],
             [
                 "question" => "How can I track my request in real time?",
-                "answer" => 'Open <a href="my_requests.php">My Requests</a> and select <strong>View</strong> beside a request to see its live status and 5-stage progress timeline.'
+                "answer" => 'Open <a href="my_requests.php">My Requests</a> and select <strong>View</strong> beside a request to see its live status, 5-stage progress timeline, the original report photo, and any completion evidence.'
             ],
             [
                 "question" => "What do the different request statuses mean?",
-                "answer" => '<strong>Pending</strong> means the request is waiting for review. <strong>Assigned</strong> means it has been routed to Maintenance or ITSO personnel. <strong>In Progress</strong> means repair work is underway. <strong>Completed</strong> means the issue has been resolved.'
+                "answer" => '<strong>Pending</strong> requests can still be edited or deleted by their requester. <strong>Assigned</strong> means routed to Maintenance or ITSO. <strong>In Progress</strong> means repair work is underway. <strong>Completed</strong> means resolved and includes a completion photo from assigned personnel.'
             ],
             [
                 "question" => "How can I follow up on an urgent request?",
@@ -132,6 +132,7 @@ switch ($role) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/cflogo.png">
     <title>Help &amp; Support - CampusFix</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>

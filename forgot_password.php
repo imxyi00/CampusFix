@@ -12,6 +12,8 @@ $error = "";
 $success = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    require_csrf_token();
+
     $email = trim($_POST["email"] ?? "");
 
     if ($email === "" || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -63,6 +65,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/cflogo.png">
     <title>Forgot Password - CampusFix</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -76,14 +79,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <p class="auth-subtitle">Enter your registered email address and we will send you a password reset link.</p>
 
         <?php if ($error !== ""): ?>
-            <div class="alert error"><?= htmlspecialchars($error) ?></div>
+            <div class="alert error flash-notification" role="alert"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
         <?php if ($success !== ""): ?>
-            <div class="alert success"><?= htmlspecialchars($success) ?></div>
+            <div class="alert success flash-notification" role="status"><?= htmlspecialchars($success) ?></div>
         <?php endif; ?>
 
-        <form method="POST" novalidate>
+        <form method="POST" novalidate data-confirm-title="Send a password reset link?" data-confirm-message="If the email belongs to an account, a password reset link will be sent." data-confirm-label="Send Reset Link">
+            <?= csrf_input() ?>
             <label for="forgotEmail">Email Address</label>
             <input type="email" name="email" id="forgotEmail" value="<?= htmlspecialchars($_POST["email"] ?? "") ?>" placeholder="yourname@tip.edu.ph" required autocomplete="email">
 
@@ -92,5 +96,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         <p class="switch-link"><a href="index.php">Back to login</a></p>
     </div>
+    <script src="assets/script.js"></script>
 </body>
 </html>

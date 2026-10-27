@@ -6,6 +6,8 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit;
 }
 
+require_csrf_token();
+
 $email = trim($_POST["email"] ?? "");
 $password = $_POST["password"] ?? "";
 
@@ -20,6 +22,7 @@ if ($user = $result->fetch_assoc()) {
         $_SESSION["user_id"] = $user["id"];
         $_SESSION["name"] = $user["name"];
         $_SESSION["role"] = $user["role"];
+        unset($_SESSION["csrf_token"]);
 
         header("Location: dashboard.php");
         exit;

@@ -7,6 +7,8 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit;
 }
 
+require_csrf_token();
+
 $userId = (int)$_SESSION["user_id"];
 $role = $_SESSION["role"];
 $requestId = (int)($_POST["request_id"] ?? 0);
@@ -21,13 +23,19 @@ if (!in_array($status, $allowedStatuses, true)) {
     exit;
 }
 
-$prevStmt = $conn->prepare("SELECT status, assigned_to FROM requests WHERE id = ? LIMIT 1");
+$prevStmt = $conn->prepare("SELECT status, assigned_to, completion_photo FROM requests WHERE id = ? LIMIT 1");
 $prevStmt->bind_param("i", $requestId);
 $prevStmt->execute();
 $prevRow = $prevStmt->get_result()->fetch_assoc();
 $prevStmt->close();
 $oldStatus = (string)($prevRow["status"] ?? "Pending");
 $oldAssignedTo = isset($prevRow["assigned_to"]) && $prevRow["assigned_to"] !== null ? (int)$prevRow["assigned_to"] : null;
+$oldCompletionPhoto = $prevRow["completion_photo"] ?? null;
+
+if (!$prevRow) {
+    header("Location: dashboard.php?error=" . urlencode("Request was not found."));
+    exit;
+}
 
 if (in_array($role, ["admin_staff", "system_admin"], true)) {
     // Only authorized managers can assign or reassign requests.
@@ -75,10 +83,42 @@ if (in_array($role, ["admin_staff", "system_admin"], true)) {
 
 if (in_array($role, ["maintenance", "itso"], true)) {
     // Personnel can only update the status of requests assigned to themselves.
+    $newCompletionPhoto = null;
+    $upload = $_FILES["completion_photo"] ?? null;
+    if ($upload && $upload["error"] !== UPLOAD_ERR_NO_FILE) {
+        $allowedMimeTypes = ["image/jpeg" => "jpg", "image/png" => "png", "image/webp" => "webp"];
+        if ($upload["error"] !== UPLOAD_ERR_OK || $upload["size"] > 5 * 1024 * 1024) {
+            header("Location: assigned_requests.php?error=" . urlencode("Completion photo must be a valid image no larger than 5 MB."));
+            exit;
+        }
+
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($upload["tmp_name"]);
+        if (!isset($allowedMimeTypes[$mime]) || @getimagesize($upload["tmp_name"]) === false) {
+            header("Location: assigned_requests.php?error=" . urlencode("Only valid JPG, PNG, and WEBP completion photos are allowed."));
+            exit;
+        }
+
+        $uploadDir = __DIR__ . "/uploads/";
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
+            header("Location: assigned_requests.php?error=" . urlencode("Unable to prepare the photo upload folder."));
+            exit;
+        }
+        $newCompletionPhoto = bin2hex(random_bytes(16)) . "." . $allowedMimeTypes[$mime];
+        if (!move_uploaded_file($upload["tmp_name"], $uploadDir . $newCompletionPhoto)) {
+            header("Location: assigned_requests.php?error=" . urlencode("Unable to save the completion photo."));
+            exit;
+        }
+    }
+
+    if ($status === "Completed" && !$newCompletionPhoto && !$oldCompletionPhoto) {
+        header("Location: assigned_requests.php?error=" . urlencode("Add a completion photo before marking this request completed."));
+        exit;
+    }
+
     $conn->begin_transaction();
     try {
-        $stmt = $conn->prepare("UPDATE requests SET status = ? WHERE id = ? AND assigned_to = ?");
-        $stmt->bind_param("sii", $status, $requestId, $userId);
+        $stmt = $conn->prepare("UPDATE requests SET status = ?, completion_photo = COALESCE(?, completion_photo) WHERE id = ? AND assigned_to = ?");
+        $stmt->bind_param("ssii", $status, $newCompletionPhoto, $requestId, $userId);
         if (!$stmt->execute()) {
             throw new RuntimeException("Unable to update request status.");
         }
@@ -89,6 +129,7 @@ if (in_array($role, ["maintenance", "itso"], true)) {
             $check->execute();
             if (!$check->get_result()->fetch_assoc()) {
                 $conn->rollback();
+                if ($newCompletionPhoto) unlink(__DIR__ . "/uploads/" . $newCompletionPhoto);
                 header("Location: assigned_requests.php?error=" . urlencode("You can only update requests assigned to your account."));
                 exit;
             }
@@ -102,12 +143,26 @@ if (in_array($role, ["maintenance", "itso"], true)) {
         notify_request_updated($conn, $requestId, $oldStatus, $oldAssignedTo, $status, $userId);
     } catch (mysqli_sql_exception | RuntimeException $exception) {
         $conn->rollback();
+        if ($newCompletionPhoto) {
+            $newPath = __DIR__ . "/uploads/" . $newCompletionPhoto;
+            if (is_file($newPath)) unlink($newPath);
+        }
         error_log("CampusFix request progress update failed: " . $exception->getMessage());
         header("Location: assigned_requests.php?error=" . urlencode("Unable to update request progress."));
         exit;
     }
+    if ($newCompletionPhoto && $oldCompletionPhoto) {
+        $oldPath = __DIR__ . "/uploads/" . basename($oldCompletionPhoto);
+        if (is_file($oldPath) && !unlink($oldPath)) {
+            error_log("CampusFix could not remove replaced completion photo {$oldCompletionPhoto}.");
+        }
+    }
 
-    header("Location: assigned_requests.php?success=" . urlencode("Request status updated successfully."));
+    $successMessage = "Request #{$requestId} status updated to {$status}.";
+    if ($newCompletionPhoto) {
+        $successMessage .= " Completion photo saved.";
+    }
+    header("Location: assigned_requests.php?success=" . urlencode($successMessage));
     exit;
 }
 

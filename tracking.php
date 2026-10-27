@@ -48,7 +48,7 @@ $currentStage = match ($request["status"] ?? "") {
 $stages = [
     ["key" => "submitted", "label" => "Request Submitted", "time" => $request["created_at"] ?? null],
     ["key" => "reviewed", "label" => "Request Reviewed", "time" => $progress["reviewed"] ?? null],
-    ["key" => "assigned", "label" => "Assigned to Maintenance", "time" => $progress["assigned"] ?? null],
+    ["key" => "assigned", "label" => "Assigned to Personnel", "time" => $progress["assigned"] ?? null],
     ["key" => "repair", "label" => "Repair", "time" => $progress["repair"] ?? null],
     ["key" => "resolved", "label" => "Resolved", "time" => $progress["resolved"] ?? null]
 ];
@@ -58,12 +58,13 @@ $stages = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/cflogo.png">
     <title>Track Request - CampusFix</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 <?php include "partials/nav.php"; ?>
-<main class="container tracking-page" id="trackingContainer" data-request-id="<?= $request ? (int)$request["id"] : 0 ?>" data-initial-status="<?= $request ? tracking_escape($request["status"]) : "" ?>">
+<main class="container tracking-page" id="trackingContainer" data-request-id="<?= $request ? (int)$request["id"] : 0 ?>" data-initial-status="<?= $request ? tracking_escape($request["status"]) : "" ?>" data-server-time="<?= time() ?>" data-user-id="<?= (int)$_SESSION["user_id"] ?>" data-user-role="requester" data-firebase-sync-available="<?= is_file(FIREBASE_SERVICE_ACCOUNT_PATH) ? "true" : "false" ?>">
     <div class="page-heading">
         <div>
             <span class="eyebrow">REQUEST TRACKING</span>
@@ -90,6 +91,10 @@ $stages = [
                 <div><strong>Date Submitted</strong><span><?= tracking_escape(tracking_time($request["created_at"])) ?></span></div>
                 <div><strong>Last Updated</strong><span id="lastUpdatedTime"><?= tracking_escape(tracking_time($request["updated_at"])) ?></span></div>
             </div>
+            <section class="request-evidence" aria-label="Request photo evidence">
+                <?php if (!empty($request["photo"])): ?><div class="evidence-photo-block"><strong>Photo submitted with report</strong><img class="request-photo review-photo" src="uploads/<?= tracking_escape($request["photo"]) ?>" alt="Photo submitted by requester"></div><?php endif; ?>
+                <div class="evidence-photo-block" id="completionEvidenceBlock" <?= empty($request["completion_photo"]) ? "hidden" : "" ?>><strong>Completion proof from assigned personnel</strong><img class="request-photo review-photo" id="completionEvidencePhoto" src="<?= empty($request["completion_photo"]) ? "" : "uploads/" . tracking_escape($request["completion_photo"]) ?>" alt="Photo proving completed work"></div>
+            </section>
         </section>
 
         <section class="panel tracking-progress-panel" aria-labelledby="progress-heading">
@@ -121,6 +126,8 @@ $stages = [
         <section class="panel"><p class="muted">You can only track requests submitted from your account.</p></section>
     <?php endif; ?>
 </main>
+<script src="assets/script.js"></script>
+<script src="assets/request-polling.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="assets/firebase-tracking.js"></script>

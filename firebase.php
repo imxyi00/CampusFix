@@ -157,6 +157,7 @@ function firebase_sync_request_from_db(mysqli $conn, int $requestId): bool {
             "title"          => (string)$request["title"],
             "category"       => (string)$request["category"],
             "location"       => (string)$request["location"],
+            "completion_photo" => $request["completion_photo"] ?? null,
             "status"         => (string)$request["status"],
             "assigned_name"  => (string)($request["assigned_name"] ?? "Not assigned"),
             "created_at"    => (string)$request["created_at"],

@@ -189,6 +189,7 @@ $chartJsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/cflogo.png">
     <title>Reports &amp; Analytics - CampusFix</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>

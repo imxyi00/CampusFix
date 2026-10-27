@@ -5,6 +5,7 @@
             <span><strong>CampusFix</strong><small class="brand-school">T.I.P. Quezon City</small></span>
         </a>
         <div class="nav-links">
+            <a class="nav-back" href="dashboard.php" data-history-back>← Back</a>
             <a href="dashboard.php">Dashboard</a>
             <?php if ($_SESSION["role"] === "requester"): ?>
                 <a href="submit_request.php">Submit Request</a><a href="my_requests.php">My Requests</a>
@@ -18,7 +19,10 @@
                 <a href="reports.php">Reports</a>
             <?php endif; ?>
             <a href="help_support.php">Help &amp; Support</a>
-            <a class="nav-logout" href="logout.php">Logout</a>
+            <form action="logout.php" method="POST" class="nav-logout-form" data-confirm-title="Log out?" data-confirm-message="Are you sure you want to log out of CampusFix?" data-confirm-label="Log out">
+                <?= csrf_input() ?>
+                <button class="nav-logout" type="submit">Logout</button>
+            </form>
         </div>
     </div>
 </nav>

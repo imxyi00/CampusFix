@@ -4,6 +4,12 @@
  */
 
 (function () {
+    const trackingContainer = document.getElementById("trackingContainer");
+    const liveWatcher = document.getElementById("firebaseLiveWatcher");
+    const syncAvailable = trackingContainer?.dataset.firebaseSyncAvailable === "true"
+        || liveWatcher?.dataset.firebaseSyncAvailable === "true";
+    if (!syncAvailable) return;
+
     const firebaseConfig = {
         apiKey: "AIzaSyAHmsoA4d2mSsxdT4Ax0AYeW6TyUalx3L4",
         authDomain: "errorlog-cfdaf.firebaseapp.com",
@@ -88,7 +94,6 @@
     }
 
     // 1. Single Request Tracking on tracking.php
-    const trackingContainer = document.getElementById("trackingContainer");
     if (trackingContainer) {
         const requestId = trackingContainer.dataset.requestId;
         let lastStatus = trackingContainer.dataset.initialStatus;
@@ -151,13 +156,21 @@
             if (updatedEl && data.updated_at) {
                 updatedEl.textContent = formatTime(data.updated_at);
             }
+            if (data.completion_photo) {
+                const proofBlock = document.getElementById("completionEvidenceBlock");
+                const proofImage = document.getElementById("completionEvidencePhoto");
+                if (proofBlock && proofImage) {
+                    proofImage.src = `uploads/${encodeURIComponent(data.completion_photo)}`;
+                    proofBlock.hidden = false;
+                }
+            }
 
             // Update Timeline stages
             if (data.stages) {
                 const stagesDef = [
                     { key: "submitted", label: "Request Submitted" },
                     { key: "reviewed",  label: "Request Reviewed" },
-                    { key: "assigned",  label: "Assigned to Maintenance" },
+                    { key: "assigned",  label: "Assigned to Personnel" },
                     { key: "repair",    label: "Repair" },
                     { key: "resolved",  label: "Resolved" }
                 ];
@@ -211,7 +224,6 @@
     }
 
     // 2. Global live notifications on Dashboard, My Requests, Assigned Requests & Manage Requests
-    const liveWatcher = document.getElementById("firebaseLiveWatcher");
     if (liveWatcher) {
         const userId = parseInt(liveWatcher.dataset.userId || liveWatcher.dataset.requesterId, 10);
         const userRole = liveWatcher.dataset.userRole || "requester";

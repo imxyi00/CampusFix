@@ -3,6 +3,8 @@ require "config.php";
 require_roles(["system_admin"]);
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    require_csrf_token();
+
     $action = $_POST["action"] ?? "create";
 
     if ($action === "revoke") {
@@ -62,6 +64,7 @@ $users = $conn->query("SELECT id, name, email, role, created_at FROM users ORDER
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/cflogo.png">
     <title>Manage Users - CampusFix</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -77,12 +80,13 @@ $users = $conn->query("SELECT id, name, email, role, created_at FROM users ORDER
         </div>
     </div>
 
-    <?php if (!empty($error)): ?><div class="alert error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-    <?php if (isset($_GET["success"])): ?><div class="alert success"><?= htmlspecialchars($_GET["success"]) ?></div><?php endif; ?>
+    <?php if (!empty($error)): ?><div class="alert error flash-notification" role="alert"><?= htmlspecialchars($error) ?></div><?php endif; ?>
+    <?php if (isset($_GET["success"])): ?><div class="alert success flash-notification" role="status"><?= htmlspecialchars($_GET["success"]) ?></div><?php endif; ?>
 
     <section class="panel form-panel">
         <h2>Create Staff Account</h2>
-        <form method="POST">
+        <form method="POST" data-confirm-title="Create staff account?" data-confirm-message="Confirm that the account details and assigned role are correct." data-confirm-label="Create Account">
+            <?= csrf_input() ?>
             <input type="hidden" name="action" value="create">
             <label>Full Name</label>
             <input type="text" name="name" maxlength="100" required>
@@ -132,7 +136,8 @@ $users = $conn->query("SELECT id, name, email, role, created_at FROM users ORDER
                             <?php if ((int)$user["id"] === (int)$_SESSION["user_id"]): ?>
                                 <span class="muted">Current Account</span>
                             <?php else: ?>
-                                <form method="POST" class="inline-action-form" onsubmit="return confirm('Revoke access for <?= htmlspecialchars(addslashes($user["name"]), ENT_QUOTES) ?>?');">
+                                <form method="POST" class="inline-action-form" data-confirm-title="Revoke account access?" data-confirm-message="This account will be deleted and will no longer be able to sign in." data-confirm-label="Revoke Access">
+                                    <?= csrf_input() ?>
                                     <input type="hidden" name="action" value="revoke">
                                     <input type="hidden" name="user_id" value="<?= (int)$user["id"] ?>">
                                     <button type="submit" class="btn danger-btn small-btn">Revoke Access</button>

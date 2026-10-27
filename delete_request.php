@@ -3,11 +3,12 @@ require "config.php";
 require_roles(["system_admin"]);
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") { header("Location: manage_requests.php"); exit; }
+require_csrf_token();
 $requestId = (int)($_POST["request_id"] ?? 0);
 $returnTo = $_POST["return_to"] ?? "manage_requests.php";
 if (!preg_match('/^manage_requests\.php(?:\?.*)?$/', $returnTo)) $returnTo = "manage_requests.php";
 
-$stmt = $conn->prepare("SELECT photo FROM requests WHERE id = ?");
+$stmt = $conn->prepare("SELECT photo, completion_photo FROM requests WHERE id = ?");
 $stmt->bind_param("i", $requestId); $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();
 if (!$row) { header("Location: {$returnTo}?error=" . urlencode("Request was not found.")); exit; }
@@ -15,7 +16,11 @@ if (!$row) { header("Location: {$returnTo}?error=" . urlencode("Request was not 
 $stmt = $conn->prepare("DELETE FROM requests WHERE id = ?");
 $stmt->bind_param("i", $requestId);
 if ($stmt->execute()) {
-    if (!empty($row["photo"])) { $path = __DIR__ . "/uploads/" . basename($row["photo"]); if (is_file($path)) @unlink($path); }
+    foreach ([$row["photo"], $row["completion_photo"]] as $filename) {
+        if (!$filename) continue;
+        $path = __DIR__ . "/uploads/" . basename($filename);
+        if (is_file($path) && !unlink($path)) error_log("CampusFix could not remove request image {$filename} after request deletion.");
+    }
     firebase_delete_request($requestId);
     header("Location: {$returnTo}" . (str_contains($returnTo, "?") ? "&" : "?") . "success=" . urlencode("Request #{$requestId} was deleted.")); exit;
 }

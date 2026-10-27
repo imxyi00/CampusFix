@@ -1,3 +1,239 @@
+(() => {
+    document.querySelectorAll("[data-dialog-open]").forEach(button => {
+        const dialog = document.getElementById(button.dataset.dialogOpen);
+        if (!dialog || typeof dialog.showModal !== "function") return;
+
+        button.addEventListener("click", () => dialog.showModal());
+        dialog.querySelectorAll("[data-dialog-close]").forEach(closeButton => {
+            closeButton.addEventListener("click", () => dialog.close());
+        });
+        dialog.addEventListener("cancel", event => {
+            event.preventDefault();
+            dialog.close();
+        });
+        dialog.addEventListener("keydown", event => {
+            if (event.key !== "Escape") return;
+            event.preventDefault();
+            dialog.close();
+        });
+        dialog.addEventListener("click", event => {
+            if (event.target === dialog) dialog.close();
+        });
+    });
+
+    document.querySelectorAll(".assigned-detail-form").forEach(form => {
+        const status = form.querySelector("[data-completion-status]");
+        const field = form.querySelector(".completion-photo-field");
+        const photo = form.querySelector("[data-completion-photo]");
+        const requiredLabel = form.querySelector("[data-photo-required]");
+        if (!status || !field || !photo || !requiredLabel) return;
+
+        const updatePhotoRequirement = () => {
+            const required = status.value === "Completed" && field.dataset.hasCompletionPhoto !== "true";
+            photo.required = required;
+            requiredLabel.hidden = !required;
+        };
+        status.addEventListener("change", updatePhotoRequirement);
+        updatePhotoRequirement();
+    });
+
+    document.querySelectorAll("[data-history-back]").forEach(link => {
+        link.addEventListener("click", event => {
+            if (!document.referrer) return;
+
+            let previousUrl;
+            try {
+                previousUrl = new URL(document.referrer);
+            } catch (error) {
+                return;
+            }
+
+            if (
+                previousUrl.origin !== window.location.origin
+                || /\/(?:index|login|logout)\.php$/.test(previousUrl.pathname)
+            ) return;
+            event.preventDefault();
+            window.history.back();
+        });
+    });
+
+    let confirmDialog;
+    let title;
+    let message;
+    let confirmButton;
+    let cancelButton;
+    let pendingAction = null;
+    let returnFocus = null;
+
+    function close() {
+        if (!confirmDialog?.open) return;
+        pendingAction = null;
+        confirmDialog.close();
+        if (returnFocus && returnFocus.isConnected) returnFocus.focus();
+    }
+
+    function ensureModal() {
+        if (confirmDialog) return;
+
+        confirmDialog = document.createElement("dialog");
+        confirmDialog.className = "action-confirm-dialog";
+        confirmDialog.setAttribute("aria-labelledby", "actionConfirmTitle");
+        confirmDialog.setAttribute("aria-describedby", "actionConfirmMessage");
+        confirmDialog.innerHTML = `
+            <section class="confirm-modal action-confirm-modal">
+            <span class="eyebrow">PLEASE CONFIRM</span>
+            <h2 id="actionConfirmTitle"></h2>
+            <p id="actionConfirmMessage"></p>
+            <div class="modal-actions">
+                <button class="btn secondary" type="button" data-confirm-cancel>Cancel</button>
+                <button class="btn" type="button" data-confirm-continue>Confirm</button>
+            </div>
+            </section>
+        `;
+        document.body.appendChild(confirmDialog);
+        title = confirmDialog.querySelector("#actionConfirmTitle");
+        message = confirmDialog.querySelector("#actionConfirmMessage");
+        confirmButton = confirmDialog.querySelector("[data-confirm-continue]");
+        cancelButton = confirmDialog.querySelector("[data-confirm-cancel]");
+
+        cancelButton.addEventListener("click", close);
+        confirmButton.addEventListener("click", () => {
+            const action = pendingAction;
+            close();
+            if (action) action();
+        });
+        confirmDialog.addEventListener("cancel", event => {
+            event.preventDefault();
+            close();
+        });
+        confirmDialog.addEventListener("click", event => {
+            if (event.target === confirmDialog) close();
+        });
+        document.addEventListener("keydown", event => {
+            if (confirmDialog.open && event.key === "Escape") event.stopImmediatePropagation();
+        });
+    }
+
+    function open(control, action, confirmTitle, confirmMessage, confirmLabel, cancelLabel = "Cancel") {
+        ensureModal();
+        pendingAction = action;
+        returnFocus = control;
+        title.textContent = confirmTitle;
+        message.textContent = confirmMessage;
+        confirmButton.textContent = confirmLabel;
+        cancelButton.textContent = cancelLabel;
+        confirmDialog.showModal();
+        cancelButton.focus();
+    }
+
+    document.querySelectorAll("form[data-confirm-message]").forEach(form => {
+        form.addEventListener("submit", event => {
+            if (form.dataset.confirmed === "true") {
+                delete form.dataset.confirmed;
+                return;
+            }
+
+            event.preventDefault();
+            const submitter = event.submitter;
+            const label = submitter ? submitter.textContent.trim() : "Continue";
+            open(
+                submitter || form,
+                () => {
+                    form.dataset.confirmed = "true";
+                    if (typeof form.requestSubmit === "function") {
+                        form.requestSubmit(submitter || undefined);
+                    } else {
+                        form.submit();
+                    }
+                },
+                form.dataset.confirmTitle || "Confirm this action?",
+                form.dataset.confirmMessage,
+                form.dataset.confirmLabel || label,
+                form.dataset.confirmCancelLabel || "Cancel"
+            );
+        });
+    });
+
+    document.querySelectorAll('a[href$="logout.php"]').forEach(link => {
+        link.addEventListener("click", event => {
+            event.preventDefault();
+            open(
+                link,
+                () => { window.location.href = link.href; },
+                "Log out?",
+                "Are you sure you want to log out of CampusFix?",
+                "Log out"
+            );
+        });
+    });
+})();
+
+window.campusfixShowToast = function (titleText, messageText, iconText = "🔔") {
+    let container = document.querySelector(".cf-toast-container");
+    if (!container) {
+        container = document.createElement("div");
+        container.className = "cf-toast-container";
+        container.setAttribute("aria-live", "polite");
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = "cf-toast";
+    const icon = document.createElement("div");
+    icon.className = "cf-toast-icon";
+    icon.textContent = iconText;
+    const body = document.createElement("div");
+    body.className = "cf-toast-body";
+    const title = document.createElement("strong");
+    title.textContent = titleText;
+    const message = document.createElement("span");
+    message.textContent = messageText;
+    body.append(title, message);
+    toast.append(icon, body);
+    container.appendChild(toast);
+    window.setTimeout(() => {
+        toast.classList.add("fade-out");
+        window.setTimeout(() => toast.remove(), 320);
+    }, 5000);
+};
+
+document.querySelectorAll(".flash-notification").forEach(notification => {
+    let toastContainer = document.querySelector(".cf-toast-container");
+    if (!toastContainer) {
+        toastContainer = document.createElement("div");
+        toastContainer.className = "cf-toast-container";
+        toastContainer.setAttribute("aria-live", "polite");
+        document.body.appendChild(toastContainer);
+    }
+
+    const isError = notification.classList.contains("error");
+    const toast = document.createElement("div");
+    toast.className = `cf-toast ${isError ? "error" : "success"}`;
+    toast.setAttribute("role", isError ? "alert" : "status");
+
+    const icon = document.createElement("div");
+    icon.className = "cf-toast-icon";
+    icon.textContent = isError ? "!" : "✓";
+
+    const body = document.createElement("div");
+    body.className = "cf-toast-body";
+    const title = document.createElement("strong");
+    title.textContent = isError
+        ? "Unable to complete action"
+        : (notification.dataset.toastTitle || "Success");
+    const message = document.createElement("span");
+    message.textContent = notification.textContent.trim();
+    body.append(title, message);
+    toast.append(icon, body);
+    toastContainer.appendChild(toast);
+    notification.remove();
+
+    window.setTimeout(() => {
+        toast.classList.add("fade-out");
+        window.setTimeout(() => toast.remove(), 320);
+    }, 5000);
+});
+
 const photoInput = document.getElementById("photo");
 const preview = document.getElementById("photoPreview");
 
@@ -34,20 +270,48 @@ const deleteId = document.getElementById("deleteRequestId");
 const deleteLabel = document.getElementById("deleteRequestLabel");
 const closeDeleteModal = document.getElementById("closeDeleteModal");
 const cancelDelete = document.getElementById("cancelDelete");
+let deleteReturnFocus = null;
 
 document.querySelectorAll("[data-confirm-delete]").forEach(button => {
     button.addEventListener("click", () => {
         if (!deleteModal) return;
         deleteId.value = button.dataset.confirmDelete || "";
         deleteLabel.textContent = `Request #${button.dataset.confirmDelete} – ${button.dataset.title || "Untitled"}`;
+        deleteReturnFocus = button;
         deleteModal.hidden = false;
+        closeDeleteModal.focus();
     });
 });
 
-function hideDeleteModal() { if (deleteModal) deleteModal.hidden = true; }
+function hideDeleteModal() {
+    if (!deleteModal) return;
+    deleteModal.hidden = true;
+    if (deleteReturnFocus && deleteReturnFocus.isConnected) deleteReturnFocus.focus();
+}
 if (closeDeleteModal) closeDeleteModal.addEventListener("click", hideDeleteModal);
 if (cancelDelete) cancelDelete.addEventListener("click", hideDeleteModal);
 if (deleteModal) deleteModal.addEventListener("click", e => { if (e.target === deleteModal) hideDeleteModal(); });
+
+const requestReviewModal = document.getElementById("requestReviewModal");
+if (requestReviewModal) {
+    const closeRequestModal = requestReviewModal.querySelector("[data-close-request-modal]");
+    const closeRequestReview = () => {
+        if (closeRequestModal) window.location.href = closeRequestModal.href;
+    };
+
+    requestReviewModal.querySelector(".review-panel").focus();
+    requestReviewModal.addEventListener("click", event => {
+        if (event.target === requestReviewModal) closeRequestReview();
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key !== "Escape") return;
+        if (deleteModal && !deleteModal.hidden) {
+            hideDeleteModal();
+            return;
+        }
+        closeRequestReview();
+    });
+}
 
 document.querySelectorAll(".faq-question").forEach(button => {
     button.addEventListener("click", () => {

@@ -18,6 +18,7 @@ CREATE TABLE requests (
     location VARCHAR(150) NOT NULL,
     description TEXT NOT NULL,
     photo VARCHAR(255) NOT NULL,
+    completion_photo VARCHAR(255) NULL,
     assigned_to INT NULL,
     status ENUM('Pending','Assigned','In Progress','Completed') NOT NULL DEFAULT 'Pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

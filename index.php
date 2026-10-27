@@ -11,6 +11,7 @@ if (isset($_SESSION["user_id"])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/cflogo.png">
     <title>CampusFix | T.I.P. QC</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -24,14 +25,15 @@ if (isset($_SESSION["user_id"])) {
         <p class="auth-subtitle">Campus Facility Maintenance and Services Request Management System</p>
 
         <?php if (isset($_GET["error"])): ?>
-            <div class="alert error"><?= htmlspecialchars($_GET["error"]) ?></div>
+            <div class="alert error flash-notification" role="alert"><?= htmlspecialchars($_GET["error"]) ?></div>
         <?php endif; ?>
 
         <?php if (isset($_GET["success"])): ?>
-            <div class="alert success"><?= htmlspecialchars($_GET["success"]) ?></div>
+            <div class="alert success flash-notification" role="status"><?= htmlspecialchars($_GET["success"]) ?></div>
         <?php endif; ?>
 
         <form action="login.php" method="POST" id="loginForm" novalidate>
+            <?= csrf_input() ?>
             <label for="loginEmail">Email</label>
             <input type="email" name="email" id="loginEmail" required autocomplete="email">
 

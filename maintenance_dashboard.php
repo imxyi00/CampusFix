@@ -3,6 +3,8 @@
 
 
 <?php
+require_once __DIR__ . "/config.php";
+
 $metrics = [
     'pending' => 12,
     'in_progress' => 8,
@@ -55,6 +57,7 @@ $tasks = [
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="assets/cflogo.png">
   <title>CampusFix - Maintenance Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -85,6 +88,10 @@ $tasks = [
       margin: 0;
       padding: 0;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    html {
+      overflow-x: clip;
     }
 
 
@@ -425,10 +432,47 @@ $tasks = [
       .navbar {
         flex-direction: column;
         gap: 12px;
-        padding: 12px 20px;
+        padding: 12px clamp(12px, 4vw, 20px);
+      }
+      .nav-menu {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 0;
+      }
+      .nav-menu li {
+        flex: 0 0 auto;
+      }
+      .nav-menu form {
+        margin: 0;
+      }
+      .app-container {
+        padding: 28px clamp(12px, 4vw, 20px);
+      }
+      .main-title {
+        font-size: clamp(28px, 8vw, 36px);
       }
       .metrics-grid {
         grid-template-columns: repeat(2, 1fr);
+      }
+      .task-item {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .task-left {
+        min-width: 0;
+        flex: 1 1 200px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+      .metric-card {
+        padding: 16px;
       }
     }
   </style>
@@ -446,11 +490,12 @@ $tasks = [
     </a>
    
     <ul class="nav-menu">
+      <li><a href="dashboard.php" class="nav-link nav-back" data-history-back>← Back</a></li>
       <li><a href="dashboard.php" class="nav-link active">Dashboard</a></li>
       <li><a href="manage_requests.php" class="nav-link">Manage Requests</a></li>
       <li><a href="manage_users.php" class="nav-link">Manage Users</a></li>
       <li><a href="records.php" class="nav-link">Records</a></li>
-      <li><a href="logout.php" class="nav-link logout-btn">Logout</a></li>
+      <li><form action="logout.php" method="POST" onsubmit="return confirm('Are you sure you want to log out of CampusFix?');"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, "UTF-8") ?>"><button type="submit" class="nav-link logout-btn">Logout</button></form></li>
     </ul>
   </nav>
 
@@ -514,13 +559,12 @@ $tasks = [
                 <i class="fa-solid <?= htmlspecialchars($task['icon']); ?>"></i>
               </div>
               <div class="task-details">
-                <span class="task-id"><?= htmlspecialchars(
-task['id']);?>•<?=htmlspecialchars(task['priority']); ?></span>
+                <span class="task-id"><?= htmlspecialchars($task['id']); ?> · <?= htmlspecialchars($task['priority']); ?></span>
                 <div class="task-title-text"><?= htmlspecialchars($task['title']); ?></div>
-                <div class="task-subtext"><?= htmlspecialchars(task['location']);?>•Tech:<?=htmlspecialchars(task['tech']); ?></div>
+                <div class="task-subtext"><?= htmlspecialchars($task['location']); ?> · Tech: <?= htmlspecialchars($task['tech']); ?></div>
               </div>
             </div>
-            <span class="badge <?= htmlspecialchars(task['badgeclass']);?>"><?=htmlspecialchars(task['status']); ?></span>
+            <span class="badge <?= htmlspecialchars($task['badge_class']); ?>"><?= htmlspecialchars($task['status']); ?></span>
           </a>
         <?php endforeach; ?>
       </div>
@@ -532,7 +576,3 @@ task['id']);?>•<?=htmlspecialchars(task['priority']); ?></span>
 
 </body>
 </html>
-
-
-
-

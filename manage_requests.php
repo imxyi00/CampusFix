@@ -41,6 +41,8 @@ $stmt = $conn->prepare($sql);
 if ($types !== "") $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
+$allRequests = $conn->query("SELECT r.id, r.title, r.category, r.location, r.status, r.created_at, requester.name AS requester_name FROM requests r JOIN users requester ON r.requester_id = requester.id ORDER BY r.created_at DESC");
+$reviewRequest = null;
 
 $personnel = $conn->query("SELECT id, name, role FROM users WHERE role IN ('maintenance','itso') ORDER BY name");
 $personnelRows = [];
@@ -55,13 +57,13 @@ function status_class(string $status): string { return "status-" . strtolower(st
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Manage Requests - CampusFix</title><link rel="stylesheet" href="assets/style.css"></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" type="image/png" href="assets/cflogo.png"><title>Manage Requests - CampusFix</title><link rel="stylesheet" href="assets/style.css"></head>
 <body>
 <?php include "partials/nav.php"; ?>
 <main class="container">
     <div class="page-heading"><div><span class="eyebrow">REQUEST MANAGEMENT</span><h1>Manage Requests</h1><p class="muted">Search, filter, review, assign, and update submitted requests.</p></div></div>
-    <?php if (isset($_GET["success"])): ?><div class="alert success"><?= htmlspecialchars($_GET["success"]) ?></div><?php endif; ?>
-    <?php if (isset($_GET["error"])): ?><div class="alert error"><?= htmlspecialchars($_GET["error"]) ?></div><?php endif; ?>
+    <?php if (isset($_GET["success"])): ?><div class="alert success flash-notification" data-toast-title="Changes saved" role="status"><?= htmlspecialchars($_GET["success"]) ?></div><?php endif; ?>
+    <?php if (isset($_GET["error"])): ?><div class="alert error flash-notification" role="alert"><?= htmlspecialchars($_GET["error"]) ?></div><?php endif; ?>
 
     <section class="panel filter-panel">
         <form method="GET" class="filter-form">
@@ -75,31 +77,62 @@ function status_class(string $status): string { return "status-" . strtolower(st
     </section>
 
     <section class="panel">
-        <div class="panel-title-row"><div><span class="eyebrow">REQUEST LIST</span><h2>Submitted Requests</h2></div><span class="result-count"><?= $result->num_rows ?> result(s)</span></div>
+        <div class="panel-title-row"><div><span class="eyebrow">REQUEST LIST</span><h2>Submitted Requests</h2></div><div class="panel-title-actions"><span class="result-count"><?= $result->num_rows ?> result(s)</span><button class="text-link dashboard-list-trigger" type="button" data-dialog-open="allManagedRequestsDialog">See All</button></div></div>
         <div class="table-wrap">
             <table><thead><tr><th>ID</th><th>Request</th><th>Category</th><th>Location</th><th>Status</th><th>Assigned To</th><th>Date</th><th>Action</th></tr></thead>
             <tbody>
             <?php if ($result->num_rows > 0): while ($row = $result->fetch_assoc()): ?>
-                <tr class="<?= $focusId === (int)$row["id"] ? "highlight-row" : "" ?>">
-                    <td>#<?= (int)$row["id"] ?></td><td><strong><?= htmlspecialchars($row["title"]) ?></strong><small class="table-sub"><?= htmlspecialchars($row["requester_name"]) ?></small></td><td><?= htmlspecialchars($row["category"]) ?></td><td><?= htmlspecialchars($row["location"]) ?></td><td><span class="status <?= status_class($row["status"]) ?>"><?= htmlspecialchars($row["status"]) ?></span></td><td><?= htmlspecialchars($row["assigned_name"] ?? "Not assigned") ?></td><td><?= htmlspecialchars($row["created_at"]) ?></td><td><a class="btn small-btn" href="manage_requests.php?<?= htmlspecialchars(keep_query(["request_id" => (int)$row["id"]])) ?>#request-review">Review</a></td>
+                <?php if ($focusId === (int)$row["id"]) $reviewRequest = $row; ?>
+                <tr class="<?= $focusId === (int)$row["id"] ? "highlight-row" : "" ?>" data-live-request-id="<?= (int)$row["id"] ?>">
+                    <td>#<?= (int)$row["id"] ?></td><td><strong><?= htmlspecialchars($row["title"]) ?></strong><small class="table-sub"><?= htmlspecialchars($row["requester_name"]) ?></small></td><td><?= htmlspecialchars($row["category"]) ?></td><td><?= htmlspecialchars($row["location"]) ?></td><td><span class="status <?= status_class($row["status"]) ?>" data-live-status><?= htmlspecialchars($row["status"]) ?></span></td><td data-live-assignee><?= htmlspecialchars($row["assigned_name"] ?? "Not assigned") ?></td><td><?= htmlspecialchars($row["created_at"]) ?></td><td><a class="btn small-btn" href="manage_requests.php?<?= htmlspecialchars(keep_query(["request_id" => (int)$row["id"]])) ?>">Review</a></td>
                 </tr>
-                <?php if ($focusId === (int)$row["id"]): ?>
-                <tr id="request-review"><td colspan="8"><div class="review-panel">
-                    <div class="review-header"><div><span class="eyebrow">REQUEST #<?= (int)$row["id"] ?></span><h3><?= htmlspecialchars($row["title"]) ?></h3><p class="muted">Submitted by <?= htmlspecialchars($row["requester_name"]) ?> on <?= htmlspecialchars($row["created_at"]) ?></p></div><a class="btn secondary small-btn" href="manage_requests.php?<?= htmlspecialchars(keep_query(["request_id" => 0])) ?>">Close</a></div>
-                    <div class="review-details"><div><strong>Category</strong><span><?= htmlspecialchars($row["category"]) ?></span></div><div><strong>Location</strong><span><?= htmlspecialchars($row["location"]) ?></span></div><div><strong>Current Status</strong><span class="status <?= status_class($row["status"]) ?>"><?= htmlspecialchars($row["status"]) ?></span></div><div><strong>Last Updated</strong><span><?= htmlspecialchars($row["updated_at"]) ?></span></div></div>
-                    <div class="review-description"><strong>Description</strong><p><?= nl2br(htmlspecialchars($row["description"])) ?></p></div>
-                    <?php if (!empty($row["photo"])): ?><img class="request-photo review-photo" src="uploads/<?= htmlspecialchars($row["photo"]) ?>" alt="Request photo"><?php endif; ?>
-                    <form action="update_request.php" method="POST" class="review-form"><input type="hidden" name="request_id" value="<?= (int)$row["id"] ?>"><input type="hidden" name="return_to" value="manage_requests.php?<?= htmlspecialchars(keep_query(["request_id" => (int)$row["id"]])) ?>#request-review"><div><label>Assign To</label><select name="assigned_to"><option value="">Not assigned</option><?php foreach ($personnelRows as $p): ?><option value="<?= (int)$p["id"] ?>" <?= (int)$row["assigned_to"] === (int)$p["id"] ? "selected" : "" ?>><?= htmlspecialchars($p["name"] . " - " . role_label($p["role"])) ?></option><?php endforeach; ?></select></div><div><label>Status</label><select name="status"><?php foreach (["Pending","Assigned","In Progress","Completed"] as $s): ?><option value="<?= $s ?>" <?= $row["status"] === $s ? "selected" : "" ?>><?= $s ?></option><?php endforeach; ?></select></div><div class="review-actions"><button type="submit" class="authbtn">Save Changes</button><?php if ($_SESSION["role"] === "system_admin"): ?><button type="button" class="btn danger-btn" data-confirm-delete="<?= (int)$row["id"] ?>" data-title="<?= htmlspecialchars($row["title"], ENT_QUOTES) ?>">Delete Request</button><?php endif; ?></div></form>
-                </div></td></tr>
-                <?php endif; ?>
             <?php endwhile; else: ?><tr><td colspan="8" class="empty-cell">No requests match the selected filters.</td></tr><?php endif; ?>
             </tbody></table>
         </div>
     </section>
 </main>
-<div class="modal-backdrop" id="deleteModal" hidden><div class="confirm-modal"><button class="modal-close" type="button" id="closeDeleteModal">×</button><span class="eyebrow">PERMANENT ACTION</span><h2>Delete Request?</h2><p>Are you sure you want to delete <strong id="deleteRequestLabel"></strong>?</p><p class="muted">This action cannot be undone and should only be used for incorrect or unwanted records.</p><form action="delete_request.php" method="POST"><input type="hidden" name="request_id" id="deleteRequestId"><input type="hidden" name="return_to" value="manage_requests.php"><div class="modal-actions"><button type="button" class="btn secondary" id="cancelDelete">Cancel</button><button type="submit" class="btn danger-btn">Delete Request</button></div></form></div></div>
+<dialog class="dashboard-list-dialog" id="allManagedRequestsDialog" aria-labelledby="allManagedRequestsDialogTitle">
+    <div class="dashboard-dialog-header"><div><span class="eyebrow">REQUEST MANAGEMENT</span><h2 id="allManagedRequestsDialogTitle">All Submitted Requests</h2></div><button class="modal-close" type="button" data-dialog-close aria-label="Close all requests">×</button></div>
+    <div class="dashboard-dialog-content">
+        <?php if ($allRequests->num_rows > 0): ?><div class="mini-list">
+            <?php while ($row = $allRequests->fetch_assoc()): ?>
+                <a class="mini-request" href="manage_requests.php?request_id=<?= (int)$row["id"] ?>"><div><strong>#<?= (int)$row["id"] ?> · <?= htmlspecialchars($row["title"]) ?></strong><span><?= htmlspecialchars($row["requester_name"]) ?> · <?= htmlspecialchars($row["category"]) ?> · <?= htmlspecialchars($row["location"]) ?> · <?= htmlspecialchars($row["created_at"]) ?></span></div><span class="status <?= status_class($row["status"]) ?>"><?= htmlspecialchars($row["status"]) ?></span></a>
+            <?php endwhile; ?>
+        </div><?php else: ?><div class="empty-state compact"><strong>No requests found.</strong><span>Submitted requests will appear here.</span></div><?php endif; ?>
+    </div>
+    <div class="dashboard-dialog-footer"><a class="btn secondary" href="manage_requests.php">Open Manage Requests</a></div>
+</dialog>
+<?php if ($reviewRequest): ?>
+<div class="modal-backdrop request-review-modal" id="requestReviewModal" role="dialog" aria-modal="true" aria-labelledby="requestReviewTitle">
+    <div class="review-panel" tabindex="-1">
+        <div class="review-header">
+            <div><span class="eyebrow">REQUEST #<?= (int)$reviewRequest["id"] ?></span><h3 id="requestReviewTitle"><?= htmlspecialchars($reviewRequest["title"]) ?></h3><p class="muted">Submitted by <?= htmlspecialchars($reviewRequest["requester_name"]) ?> on <?= htmlspecialchars($reviewRequest["created_at"]) ?></p></div>
+            <a class="btn secondary small-btn" data-close-request-modal href="manage_requests.php?<?= htmlspecialchars(keep_query(["request_id" => 0])) ?>">Close</a>
+        </div>
+        <div class="review-details">
+            <div><strong>Category</strong><span><?= htmlspecialchars($reviewRequest["category"]) ?></span></div>
+            <div><strong>Location</strong><span><?= htmlspecialchars($reviewRequest["location"]) ?></span></div>
+            <div><strong>Current Status</strong><span class="status <?= status_class($reviewRequest["status"]) ?>"><?= htmlspecialchars($reviewRequest["status"]) ?></span></div>
+            <div><strong>Last Updated</strong><span><?= htmlspecialchars($reviewRequest["updated_at"]) ?></span></div>
+        </div>
+        <div class="review-description"><strong>Description</strong><p><?= nl2br(htmlspecialchars($reviewRequest["description"])) ?></p></div>
+        <?php if (!empty($reviewRequest["photo"])): ?><div class="evidence-photo-block"><strong>Requester photo</strong><img class="request-photo review-photo" src="uploads/<?= htmlspecialchars($reviewRequest["photo"]) ?>" alt="Request photo"></div><?php endif; ?>
+        <?php if (!empty($reviewRequest["completion_photo"])): ?><div class="evidence-photo-block"><strong>Completion proof</strong><img class="request-photo review-photo" src="uploads/<?= htmlspecialchars($reviewRequest["completion_photo"]) ?>" alt="Photo proving completed work"></div><?php endif; ?>
+        <form action="update_request.php" method="POST" class="review-form" data-confirm-title="Save request changes?" data-confirm-message="Please confirm that the assignment and status are correct." data-confirm-label="Save Changes">
+            <?= csrf_input() ?>
+            <input type="hidden" name="request_id" value="<?= (int)$reviewRequest["id"] ?>">
+            <input type="hidden" name="return_to" value="manage_requests.php?<?= htmlspecialchars(keep_query(["request_id" => (int)$reviewRequest["id"]])) ?>">
+            <div><label for="review-assigned-to">Assign To</label><select id="review-assigned-to" name="assigned_to"><option value="">Not assigned</option><?php foreach ($personnelRows as $p): ?><option value="<?= (int)$p["id"] ?>" <?= (int)$reviewRequest["assigned_to"] === (int)$p["id"] ? "selected" : "" ?>><?= htmlspecialchars($p["name"] . " - " . role_label($p["role"])) ?></option><?php endforeach; ?></select></div>
+            <div><label for="review-status">Status</label><select id="review-status" name="status"><?php foreach (["Pending","Assigned","In Progress","Completed"] as $s): ?><option value="<?= $s ?>" <?= $reviewRequest["status"] === $s ? "selected" : "" ?>><?= $s ?></option><?php endforeach; ?></select></div>
+            <div class="review-actions"><button type="submit" class="authbtn">Save Changes</button><?php if ($_SESSION["role"] === "system_admin"): ?><button type="button" class="btn danger-btn" data-confirm-delete="<?= (int)$reviewRequest["id"] ?>" data-title="<?= htmlspecialchars($reviewRequest["title"], ENT_QUOTES) ?>">Delete Request</button><?php endif; ?></div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
+<div class="modal-backdrop" id="deleteModal" hidden><div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" aria-describedby="deleteModalDescription"><button class="modal-close" type="button" id="closeDeleteModal" aria-label="Close dialog">×</button><span class="eyebrow">PERMANENT ACTION</span><h2 id="deleteModalTitle">Delete Request?</h2><p id="deleteModalDescription">Are you sure you want to delete <strong id="deleteRequestLabel"></strong>?</p><p class="muted">This action cannot be undone and should only be used for incorrect or unwanted records.</p><form action="delete_request.php" method="POST"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, "UTF-8") ?>"><input type="hidden" name="request_id" id="deleteRequestId"><input type="hidden" name="return_to" value="manage_requests.php"><div class="modal-actions"><button type="button" class="btn secondary" id="cancelDelete">Cancel</button><button type="submit" class="btn danger-btn">Delete Request</button></div></form></div></div>
 <script src="assets/script.js"></script>
-<div id="firebaseLiveWatcher" data-user-id="<?= (int)$_SESSION["user_id"] ?>" data-user-role="<?= htmlspecialchars($_SESSION["role"]) ?>"></div>
+<div id="firebaseLiveWatcher" data-user-id="<?= (int)$_SESSION["user_id"] ?>" data-user-role="<?= htmlspecialchars($_SESSION["role"]) ?>" data-server-time="<?= time() ?>" data-firebase-sync-available="<?= is_file(FIREBASE_SERVICE_ACCOUNT_PATH) ? "true" : "false" ?>"></div>
+<script src="assets/request-polling.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="assets/firebase-tracking.js"></script>

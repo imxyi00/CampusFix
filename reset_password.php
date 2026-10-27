@@ -32,6 +32,8 @@ if (!$validReset) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] === "POST" && $validReset) {
+    require_csrf_token();
+
     $password = $_POST["password"] ?? "";
     $confirmPassword = $_POST["confirm_password"] ?? "";
     $passwordRuleError = validate_password_rules($password);
@@ -79,6 +81,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && $validReset) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/cflogo.png">
     <title>Reset Password - CampusFix</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -94,11 +97,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && $validReset) {
         </p>
 
         <?php if ($error !== ""): ?>
-            <div class="alert error"><?= htmlspecialchars($error) ?></div>
+            <div class="alert error flash-notification" role="alert"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
         <?php if ($validReset): ?>
-            <form method="POST" id="resetForm">
+            <form method="POST" id="resetForm" data-confirm-title="Save your new password?" data-confirm-message="Confirm that you want to change the password for this account." data-confirm-label="Save Password">
+                <?= csrf_input() ?>
                 <input type="hidden" name="token" value="<?= htmlspecialchars($rawToken) ?>">
 
                 <label for="resetPassword">New Password</label>

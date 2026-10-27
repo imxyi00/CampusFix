@@ -7,6 +7,8 @@ if (isset($_SESSION["user_id"])) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    require_csrf_token();
+
     $name = trim($_POST["name"] ?? "");
     $email = trim($_POST["email"] ?? "");
     $password = $_POST["password"] ?? "";
@@ -52,6 +54,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/cflogo.png">
     <title>Register - CampusFix</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -65,10 +68,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <p class="auth-subtitle">Register to submit and track campus facility requests.</p>
 
         <?php if (!empty($error)): ?>
-            <div class="alert error"><?= htmlspecialchars($error) ?></div>
+            <div class="alert error flash-notification" role="alert"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
-        <form method="POST" id="registerForm">
+        <form method="POST" id="registerForm" data-confirm-title="Create your account?" data-confirm-message="Please confirm that your name, email, and password are correct." data-confirm-label="Create Account">
+            <?= csrf_input() ?>
             <label for="regName">Full Name</label>
             <input type="text" name="name" id="regName" maxlength="100" value="<?= htmlspecialchars($_POST["name"] ?? "") ?>" required>
 

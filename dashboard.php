@@ -24,17 +24,19 @@ $active = (int)$stats["active"];
 $completed = (int)$stats["completed"];
 
 $recent = [];
+$allRequests = [];
 $notifications = [];
 $selectedProgress = null;
 
 if ($role === "requester") {
-    $stmt = $conn->prepare("SELECT r.*, u.name AS assigned_name FROM requests r LEFT JOIN users u ON r.assigned_to = u.id WHERE r.requester_id = ? ORDER BY r.created_at DESC LIMIT 5");
+    $stmt = $conn->prepare("SELECT r.*, u.name AS assigned_name FROM requests r LEFT JOIN users u ON r.assigned_to = u.id WHERE r.requester_id = ? ORDER BY r.created_at DESC");
     $stmt->bind_param("i", $userId);
     $stmt->execute();
-    $recentResult = $stmt->get_result();
-    while ($row = $recentResult->fetch_assoc()) $recent[] = $row;
+    $allRequestsResult = $stmt->get_result();
+    while ($row = $allRequestsResult->fetch_assoc()) $allRequests[] = $row;
+    $recent = array_slice($allRequests, 0, 5);
 
-    $stmt = $conn->prepare("SELECT r.id, r.title, r.status, r.updated_at FROM requests r WHERE r.requester_id = ? ORDER BY r.updated_at DESC LIMIT 4");
+    $stmt = $conn->prepare("SELECT r.id, r.title, r.status, r.updated_at FROM requests r WHERE r.requester_id = ? ORDER BY r.updated_at DESC");
     $stmt->bind_param("i", $userId);
     $stmt->execute();
     $notificationResult = $stmt->get_result();
@@ -90,6 +92,7 @@ function progress_label(string $current): string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="assets/cflogo.png">
     <title>Dashboard - CampusFix</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -128,7 +131,7 @@ function progress_label(string $current): string {
         <section class="dashboard-two-col">
                     
             <div class="panel dashboard-panel">
-                <div class="panel-title-row"><div><span class="eyebrow">REQUEST HISTORY</span><h2>My Recent Requests</h2></div><a class="text-link" href="my_requests.php">View All</a></div>
+                <div class="panel-title-row"><div><span class="eyebrow">REQUEST HISTORY</span><h2>My Recent Requests</h2></div><button class="text-link dashboard-list-trigger" type="button" data-dialog-open="allRequestsDialog">See All</button></div>
                 <?php if ($recent): ?>
                     <div class="mini-list">
                     <?php foreach ($recent as $row): ?>
@@ -164,9 +167,9 @@ function progress_label(string $current): string {
         <section class="dashboard-two-col">
             
             <div class="panel dashboard-panel">
-                <div class="panel-title-row"><div><span class="eyebrow">UPDATES</span><h2>Notifications</h2></div></div>
+                <div class="panel-title-row"><div><span class="eyebrow">UPDATES</span><h2>Notifications</h2></div><button class="text-link dashboard-list-trigger" type="button" data-dialog-open="allNotificationsDialog">View All</button></div>
                 <?php if ($notifications): ?>
-                    <div class="notification-list">
+                    <div class="notification-list dashboard-notification-preview<?= count($notifications) > 5 ? " is-scrollable" : "" ?>">
                     <?php foreach ($notifications as $row): ?>
                         <div class="notification-item"><span class="notification-dot">●</span><div><strong>Request #<?= (int)$row["id"] ?> · <?= htmlspecialchars($row["title"]) ?></strong><p>Status: <b><?= htmlspecialchars($row["status"]) ?></b></p><small>Updated <?= htmlspecialchars($row["updated_at"]) ?></small></div></div>
                     <?php endforeach; ?>
@@ -178,6 +181,50 @@ function progress_label(string $current): string {
 
 
         </section>
+
+        <dialog class="dashboard-list-dialog" id="allRequestsDialog" aria-labelledby="allRequestsDialogTitle">
+            <div class="dashboard-dialog-header">
+                <div><span class="eyebrow">REQUEST HISTORY</span><h2 id="allRequestsDialogTitle">All My Requests</h2></div>
+                <button class="modal-close" type="button" data-dialog-close aria-label="Close all requests">×</button>
+            </div>
+            <div class="dashboard-dialog-content">
+                <?php if ($allRequests): ?>
+                    <div class="mini-list">
+                        <?php foreach ($allRequests as $row): ?>
+                            <a class="mini-request" href="tracking.php?id=<?= (int)$row["id"] ?>">
+                                <div><strong>#<?= (int)$row["id"] ?> · <?= htmlspecialchars($row["title"]) ?></strong><span><?= htmlspecialchars($row["category"]) ?> · <?= htmlspecialchars($row["location"]) ?></span></div>
+                                <span class="status <?= status_class($row["status"]) ?>"><?= htmlspecialchars($row["status"]) ?></span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="empty-state compact"><strong>No requests yet.</strong><span>Submit your first facility or service request to get started.</span></div>
+                <?php endif; ?>
+            </div>
+            <div class="dashboard-dialog-footer"><a class="btn secondary" href="my_requests.php">Open My Requests</a></div>
+        </dialog>
+
+        <dialog class="dashboard-list-dialog" id="allNotificationsDialog" aria-labelledby="allNotificationsDialogTitle">
+            <div class="dashboard-dialog-header">
+                <div><span class="eyebrow">UPDATES</span><h2 id="allNotificationsDialogTitle">All Notifications</h2></div>
+                <button class="modal-close" type="button" data-dialog-close aria-label="Close notifications">×</button>
+            </div>
+            <div class="dashboard-dialog-content">
+                <?php if ($notifications): ?>
+                    <div class="notification-list">
+                        <?php foreach ($notifications as $row): ?>
+                            <a class="notification-item dashboard-notification-link" href="tracking.php?id=<?= (int)$row["id"] ?>">
+                                <span class="notification-dot" aria-hidden="true">●</span>
+                                <span><strong>Request #<?= (int)$row["id"] ?> · <?= htmlspecialchars($row["title"]) ?></strong><span class="dashboard-notification-status">Status: <b><?= htmlspecialchars($row["status"]) ?></b></span><small>Updated <?= htmlspecialchars($row["updated_at"]) ?></small></span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="empty-state compact"><strong>No notifications yet.</strong><span>Updates to your requests will appear here.</span></div>
+                <?php endif; ?>
+            </div>
+            <div class="dashboard-dialog-footer"><a class="btn secondary" href="my_requests.php">Open My Requests</a></div>
+        </dialog>
 
     <?php elseif (in_array($role, ["admin_staff", "system_admin"], true)): ?>
         <div class="page-heading dashboard-heading">
@@ -209,8 +256,10 @@ function progress_label(string $current): string {
         <section class="panel accent-panel"><span class="eyebrow">TASK MANAGEMENT</span><h2>Assigned Requests</h2><p class="muted">Open your assigned work to review request details and update its progress.</p><a class="btn secondary" href="assigned_requests.php">Open Assigned Requests</a></section>
     <?php endif; ?>
 </main>
+<script src="assets/script.js"></script>
 <?php if (isset($_SESSION["user_id"])): ?>
-<div id="firebaseLiveWatcher" data-user-id="<?= (int)$userId ?>" data-requester-id="<?= (int)$userId ?>" data-user-role="<?= htmlspecialchars($role) ?>"></div>
+<div id="firebaseLiveWatcher" data-user-id="<?= (int)$userId ?>" data-requester-id="<?= (int)$userId ?>" data-user-role="<?= htmlspecialchars($role) ?>" data-server-time="<?= time() ?>" data-firebase-sync-available="<?= is_file(FIREBASE_SERVICE_ACCOUNT_PATH) ? "true" : "false" ?>"></div>
+<script src="assets/request-polling.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="assets/firebase-tracking.js"></script>

@@ -7,11 +7,11 @@
  * 1. Go to your Google Account -> Security -> Enable 2-Step Verification
  * 2. Search "App Passwords" in Google Account settings
  * 3. Create an App Password (e.g. "CampusFix") and copy the 16-character code
- * 4. Put your Gmail address and 16-character App Password below
+ * 4. Set CAMPUSFIX_SMTP_EMAIL and CAMPUSFIX_SMTP_APP_PASSWORD in the server environment
  */
 
-define("GMAIL_SMTP_EMAIL", "arquellisdeguzman54@gmail.com");                                                                                                                      
-define("GMAIL_SMTP_APP_PASSWORD", "eoic efiv ocxl vshi");   
+define("GMAIL_SMTP_EMAIL", getenv("CAMPUSFIX_SMTP_EMAIL") ?: "");
+define("GMAIL_SMTP_APP_PASSWORD", getenv("CAMPUSFIX_SMTP_APP_PASSWORD") ?: "");
 define("GMAIL_FROM_NAME", "CampusFix · T.I.P. QC");
 
 /**
@@ -89,8 +89,8 @@ function send_campusfix_email(string $toEmail, string $toName, string $subject, 
     @file_put_contents($logDir . DIRECTORY_SEPARATOR . "email_outbox.log", $logEntry, FILE_APPEND);
 
     if ($smtpUser === "" || $smtpPass === "") {
-        error_log("CampusFix SMTP: GMAIL_SMTP_EMAIL or GMAIL_SMTP_APP_PASSWORD not set in mail.php");
-        return ["sent" => false, "mode" => "unconfigured", "error" => "Email service not configured. Set GMAIL_SMTP_EMAIL and GMAIL_SMTP_APP_PASSWORD in mail.php."];
+        error_log("CampusFix SMTP is not configured in the server environment.");
+        return ["sent" => false, "mode" => "unconfigured", "error" => "Email service is not configured. Contact the system administrator."];
     }
 
     $context = stream_context_create([
