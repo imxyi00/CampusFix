@@ -39,7 +39,7 @@ if (isset($_SESSION["user_id"])) {
 
             <label for="loginPassword">Password</label>
             <div class="password-wrap">
-                <input type="password" name="password" id="loginPassword" data-password-validate="signin" required autocomplete="current-password">
+                <input type="password" name="password" id="loginPassword" required autocomplete="current-password">
                 <button type="button" class="password-toggle" aria-label="Show password" aria-pressed="false">
                     <svg class="eye-open" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -51,7 +51,6 @@ if (isset($_SESSION["user_id"])) {
                     </svg>
                 </button>
             </div>
-            <div class="password-feedback" id="loginPasswordFeedback" aria-live="polite" hidden></div>
 
             <button type="submit" class="authbtn">Login</button>
         </form>

@@ -483,7 +483,6 @@ function checkPasswordRules(value) {
 }
 
 document.querySelectorAll("[data-password-validate]").forEach(input => {
-    const mode = input.dataset.passwordValidate;
     const wrap = input.closest(".password-wrap");
     const feedback = wrap ? wrap.nextElementSibling : null;
 
@@ -496,13 +495,8 @@ document.querySelectorAll("[data-password-validate]").forEach(input => {
             input.setCustomValidity("");
             if (feedback && feedback.classList.contains("password-feedback")) {
                 feedback.classList.remove("is-error", "is-valid");
-                if (mode === "signin") {
-                    feedback.hidden = true;
-                    feedback.textContent = "";
-                } else {
-                    feedback.hidden = false;
-                    feedback.textContent = "Must be at least 8 characters with uppercase, lowercase, number, and special character.";
-                }
+                feedback.hidden = false;
+                feedback.textContent = "Must be at least 8 characters with uppercase, lowercase, number, and special character.";
             }
             return;
         }
@@ -510,18 +504,12 @@ document.querySelectorAll("[data-password-validate]").forEach(input => {
         if (missing.length > 0) {
             input.classList.add("input-error");
             input.classList.remove("input-valid");
-            if (mode === "signup") {
-                input.setCustomValidity("Password must include: " + missing.join(", "));
-            } else {
-                input.setCustomValidity("");
-            }
+            input.setCustomValidity("Password must include: " + missing.join(", "));
             if (feedback && feedback.classList.contains("password-feedback")) {
                 feedback.hidden = false;
                 feedback.classList.add("is-error");
                 feedback.classList.remove("is-valid");
-                feedback.textContent = mode === "signin"
-                    ? "Security rule warning: Follow password rule (missing " + missing.join(", ") + ")."
-                    : "Typing error — missing: " + missing.join(", ") + ".";
+                feedback.textContent = "Typing error — missing: " + missing.join(", ") + ".";
             }
         } else {
             input.classList.remove("input-error");
