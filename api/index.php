@@ -1,5 +1,6 @@
 <?php
 // Vercel front controller: maps the URL path to a PHP file in the project root.
+ini_set("display_errors", "0");
 $root = dirname(__DIR__);
 chdir($root);
 
