@@ -16,11 +16,7 @@ if (!$row) { header("Location: {$returnTo}?error=" . urlencode("Request was not 
 $stmt = $conn->prepare("DELETE FROM requests WHERE id = ?");
 $stmt->bind_param("i", $requestId);
 if ($stmt->execute()) {
-    foreach ([$row["photo"], $row["completion_photo"]] as $filename) {
-        if (!$filename) continue;
-        $path = __DIR__ . "/uploads/" . basename($filename);
-        if (is_file($path) && !unlink($path)) error_log("CampusFix could not remove request image {$filename} after request deletion.");
-    }
+    foreach ([$row["photo"], $row["completion_photo"]] as $filename) photo_delete($filename);
     firebase_delete_request($requestId);
     header("Location: {$returnTo}" . (str_contains($returnTo, "?") ? "&" : "?") . "success=" . urlencode("Request #{$requestId} was deleted.")); exit;
 }

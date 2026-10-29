@@ -1,0 +1,7 @@
+.git
+.vscode
+.codegraph
+*.sql
+README.md
+firebase-service-account.json
+uploads

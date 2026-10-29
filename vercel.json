@@ -1,0 +1,11 @@
+{
+  "functions": {
+    "api/*.php": { "runtime": "vercel-php@0.7.3" }
+  },
+  "routes": [
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
+    { "src": "/partials/(logo\\.png)", "dest": "/partials/$1" },
+    { "src": "/uploads/(.*)", "dest": "/api/index.php?f=$1&__photo=1" },
+    { "src": "/(.*)", "dest": "/api/index.php" }
+  ]
+}

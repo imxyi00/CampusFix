@@ -61,15 +61,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if (!isset($allowedMimeTypes[$mime]) || $imageInfo === false) {
             $error = "Only valid JPG, PNG, and WEBP images are allowed.";
         } else {
-            $uploadDir = __DIR__ . "/uploads/";
-            if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
-                $error = "Unable to prepare the upload folder.";
-            } else {
-                $photo = bin2hex(random_bytes(16)) . "." . $allowedMimeTypes[$mime];
-                if (!move_uploaded_file($tmpName, $uploadDir . $photo)) {
-                    $error = "Unable to save the uploaded photo.";
-                    $photo = null;
-                }
+            $photo = bin2hex(random_bytes(16)) . "." . $allowedMimeTypes[$mime];
+            if (!photo_store($tmpName, $photo, $mime)) {
+                $error = "Unable to save the uploaded photo.";
+                $photo = null;
             }
         }
     }
@@ -85,18 +80,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $verifyStmt->execute();
             $verifyRow = $verifyStmt->get_result()->fetch_assoc();
             if ($updated && ($verifyRow["status"] ?? null) === "Pending") {
-                if ($photo && $photo !== $editingRequest["photo"]) {
-                    $oldPath = __DIR__ . "/uploads/" . basename($editingRequest["photo"]);
-                    if (is_file($oldPath)) unlink($oldPath);
-                }
+                if ($photo && $photo !== $editingRequest["photo"]) photo_delete($editingRequest["photo"]);
                 firebase_sync_request_from_db($conn, $editId);
                 header("Location: my_requests.php?success=" . urlencode("Request updated successfully."));
                 exit;
             }
-            if ($photo) {
-                $newPath = __DIR__ . "/uploads/" . basename($photo);
-                if (is_file($newPath)) unlink($newPath);
-            }
+            photo_delete($photo);
             $error = "Unable to update request.";
         } else {
             $stmt = $conn->prepare("INSERT INTO requests (requester_id, title, category, location, description, photo, status) VALUES (?, ?, ?, ?, ?, ?, 'Pending')");
@@ -109,9 +98,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 header("Location: my_requests.php?success=" . urlencode("Request submitted successfully."));
                 exit;
             } else {
-                if ($photo && file_exists(__DIR__ . "/uploads/" . $photo)) {
-                    unlink(__DIR__ . "/uploads/" . $photo);
-                }
+                photo_delete($photo);
                 $error = "Unable to submit request.";
             }
         }

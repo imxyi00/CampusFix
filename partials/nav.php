@@ -1,11 +1,13 @@
 <nav class="navbar">
     <div class="nav-inner">
-        <a class="brand" href="dashboard.php" aria-label="CampusFix Dashboard">
-            <img src="partials/logo.png" alt="T.I.P." class="nav-logo">
-            <span><strong>CampusFix</strong><small class="brand-school">T.I.P. Quezon City</small></span>
-        </a>
-        <div class="nav-links">
+        <div class="nav-left">
             <a class="nav-back" href="dashboard.php" data-history-back>← Back</a>
+            <a class="brand" href="dashboard.php" aria-label="CampusFix Dashboard">
+                <img src="partials/logo.png" alt="T.I.P." class="nav-logo">
+                <span><strong>CampusFix</strong><small class="brand-school">T.I.P. Quezon City</small></span>
+            </a>
+        </div>
+        <div class="nav-links">
             <a href="dashboard.php">Dashboard</a>
             <?php if ($_SESSION["role"] === "requester"): ?>
                 <a href="submit_request.php">Submit Request</a><a href="my_requests.php">My Requests</a>

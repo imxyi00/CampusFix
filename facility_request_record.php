@@ -125,6 +125,13 @@ $records = [
     }
 
 
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+
     .nav-brand {
       display: flex;
       align-items: center;
@@ -530,16 +537,18 @@ $records = [
 
 
   <nav class="navbar">
-    <a href="dashboard.php" class="nav-brand">
-      <i class="fa-solid fa-chess-knight brand-logo-icon"></i>
-      <div class="nav-brand-text">
-        <span class="brand-title">CampusFix</span>
-        <span class="brand-subtitle">T.I.P. QUEZON CITY</span>
-      </div>
-    </a>
+    <div class="nav-left">
+      <a href="dashboard.php" class="nav-link nav-back" data-history-back>← Back</a>
+      <a href="dashboard.php" class="nav-brand">
+        <i class="fa-solid fa-chess-knight brand-logo-icon"></i>
+        <div class="nav-brand-text">
+          <span class="brand-title">CampusFix</span>
+          <span class="brand-subtitle">T.I.P. QUEZON CITY</span>
+        </div>
+      </a>
+    </div>
    
     <ul class="nav-menu">
-      <li><a href="dashboard.php" class="nav-link nav-back" data-history-back>← Back</a></li>
       <li><a href="dashboard.php" class="nav-link">Dashboard</a></li>
       <li><a href="manage_requests.php" class="nav-link">Manage Requests</a></li>
       <li><a href="manage_users.php" class="nav-link">Manage Users</a></li>

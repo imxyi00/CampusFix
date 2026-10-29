@@ -1,18 +1,56 @@
 <?php
+// Serverless (Vercel): no persistent disk, so keep sessions in MySQL.
+$sessionDb = null;
+if (getenv("VERCEL")) {
+    session_set_save_handler(new class implements SessionHandlerInterface {
+        public function open(string $path, string $name): bool { return true; }
+        public function close(): bool { return true; }
+        public function read(string $id): string|false {
+            global $sessionDb;
+            $stmt = $sessionDb->prepare("SELECT data FROM sessions WHERE id = ? AND expires_at > UNIX_TIMESTAMP()");
+            $stmt->bind_param("s", $id);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            return $row["data"] ?? "";
+        }
+        public function write(string $id, string $data): bool {
+            global $sessionDb;
+            $expires = time() + 86400;
+            $stmt = $sessionDb->prepare("REPLACE INTO sessions (id, data, expires_at) VALUES (?, ?, ?)");
+            $stmt->bind_param("ssi", $id, $data, $expires);
+            return $stmt->execute();
+        }
+        public function destroy(string $id): bool {
+            global $sessionDb;
+            $stmt = $sessionDb->prepare("DELETE FROM sessions WHERE id = ?");
+            $stmt->bind_param("s", $id);
+            return $stmt->execute();
+        }
+        public function gc(int $max): int|false { return 0; }
+    }, true);
+}
+
 session_set_cookie_params([
     "httponly" => true,
     "secure" => !empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off",
     "samesite" => "Lax"
 ]);
-session_start();
 
 $host = getenv("CAMPUSFIX_DB_HOST") ?: "localhost";
 $user = getenv("CAMPUSFIX_DB_USER") ?: "root";
 $pass = getenv("CAMPUSFIX_DB_PASSWORD") ?: "";
 $db = getenv("CAMPUSFIX_DB_NAME") ?: "campusfix";
+$port = (int)(getenv("CAMPUSFIX_DB_PORT") ?: 3306);
 
 try {
-    $conn = new mysqli($host, $user, $pass, $db);
+    $conn = mysqli_init();
+    // Managed MySQL (e.g. TiDB Cloud) requires TLS: set CAMPUSFIX_DB_SSL=1.
+    $flags = 0;
+    if (getenv("CAMPUSFIX_DB_SSL")) {
+        $conn->ssl_set(null, null, null, null, null);
+        $flags = MYSQLI_CLIENT_SSL | MYSQLI_CLIENT_SSL_DONT_VERIFY_SERVER_CERT;
+    }
+    $conn->real_connect($host, $user, $pass, $db, $port, null, $flags);
 } catch (mysqli_sql_exception $exception) {
     error_log("CampusFix database connection failed: " . $exception->getMessage());
     http_response_code(503);
@@ -25,8 +63,29 @@ if (!$conn->set_charset("utf8mb4")) {
     exit("CampusFix is temporarily unavailable. Please try again later.");
 }
 
+$sessionDb = $conn;
+session_start();
+
 require_once __DIR__ . "/firebase.php";
 require_once __DIR__ . "/mail.php";
+
+// Photos live in MySQL (photos table) because serverless hosts have no writable disk. Served by photo.php at /uploads/<name>.
+function photo_store(string $tmpFile, string $name, string $mime): bool {
+    global $conn;
+    $data = file_get_contents($tmpFile);
+    if ($data === false) return false;
+    $stmt = $conn->prepare("INSERT INTO photos (name, mime, data) VALUES (?, ?, ?)");
+    $stmt->bind_param("sss", $name, $mime, $data);
+    return $stmt->execute();
+}
+
+function photo_delete(?string $name): void {
+    global $conn;
+    if (!$name) return;
+    $stmt = $conn->prepare("DELETE FROM photos WHERE name = ?");
+    $stmt->bind_param("s", $name);
+    if (!$stmt->execute()) error_log("CampusFix could not remove photo {$name}.");
+}
 
 function csrf_token(): string {
     if (!isset($_SESSION["csrf_token"]) || !is_string($_SESSION["csrf_token"])) {

@@ -71,3 +71,19 @@ ON DUPLICATE KEY UPDATE
     name = VALUES(name),
     password = VALUES(password),
     role = VALUES(role);
+
+
+-- Vercel/serverless: photos and PHP sessions are stored in MySQL (no writable disk).
+CREATE TABLE IF NOT EXISTS photos (
+    name CHAR(36) PRIMARY KEY,
+    mime VARCHAR(50) NOT NULL,
+    data MEDIUMBLOB NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    id VARCHAR(128) PRIMARY KEY,
+    data MEDIUMTEXT NOT NULL,
+    expires_at INT NOT NULL,
+    INDEX idx_sessions_expires (expires_at)
+);

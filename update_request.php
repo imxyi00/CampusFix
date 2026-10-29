@@ -98,13 +98,8 @@ if (in_array($role, ["maintenance", "itso"], true)) {
             exit;
         }
 
-        $uploadDir = __DIR__ . "/uploads/";
-        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
-            header("Location: assigned_requests.php?error=" . urlencode("Unable to prepare the photo upload folder."));
-            exit;
-        }
         $newCompletionPhoto = bin2hex(random_bytes(16)) . "." . $allowedMimeTypes[$mime];
-        if (!move_uploaded_file($upload["tmp_name"], $uploadDir . $newCompletionPhoto)) {
+        if (!photo_store($upload["tmp_name"], $newCompletionPhoto, $mime)) {
             header("Location: assigned_requests.php?error=" . urlencode("Unable to save the completion photo."));
             exit;
         }
@@ -129,7 +124,7 @@ if (in_array($role, ["maintenance", "itso"], true)) {
             $check->execute();
             if (!$check->get_result()->fetch_assoc()) {
                 $conn->rollback();
-                if ($newCompletionPhoto) unlink(__DIR__ . "/uploads/" . $newCompletionPhoto);
+                photo_delete($newCompletionPhoto);
                 header("Location: assigned_requests.php?error=" . urlencode("You can only update requests assigned to your account."));
                 exit;
             }
@@ -143,19 +138,13 @@ if (in_array($role, ["maintenance", "itso"], true)) {
         notify_request_updated($conn, $requestId, $oldStatus, $oldAssignedTo, $status, $userId);
     } catch (mysqli_sql_exception | RuntimeException $exception) {
         $conn->rollback();
-        if ($newCompletionPhoto) {
-            $newPath = __DIR__ . "/uploads/" . $newCompletionPhoto;
-            if (is_file($newPath)) unlink($newPath);
-        }
+        photo_delete($newCompletionPhoto);
         error_log("CampusFix request progress update failed: " . $exception->getMessage());
         header("Location: assigned_requests.php?error=" . urlencode("Unable to update request progress."));
         exit;
     }
     if ($newCompletionPhoto && $oldCompletionPhoto) {
-        $oldPath = __DIR__ . "/uploads/" . basename($oldCompletionPhoto);
-        if (is_file($oldPath) && !unlink($oldPath)) {
-            error_log("CampusFix could not remove replaced completion photo {$oldCompletionPhoto}.");
-        }
+        photo_delete($oldCompletionPhoto);
     }
 
     $successMessage = "Request #{$requestId} status updated to {$status}.";

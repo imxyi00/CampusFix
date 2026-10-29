@@ -34,13 +34,7 @@ if (!$stmt->execute() || $stmt->affected_rows !== 1) {
     exit;
 }
 
-foreach ([$request["photo"], $request["completion_photo"]] as $filename) {
-    if (!$filename) continue;
-    $path = __DIR__ . "/uploads/" . basename($filename);
-    if (is_file($path) && !unlink($path)) {
-        error_log("CampusFix could not remove request image {$filename} after request deletion.");
-    }
-}
+foreach ([$request["photo"], $request["completion_photo"]] as $filename) photo_delete($filename);
 
 firebase_delete_request((int)$requestId);
 header("Location: my_requests.php?success=" . urlencode("Request #{$requestId} was deleted."));
