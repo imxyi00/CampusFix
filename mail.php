@@ -105,9 +105,13 @@ function send_campusfix_email(string $toEmail, string $toName, string $subject, 
         ]
     ]);
 
-    $smtpTargets = getenv("VERCEL")
-        ? ["ssl://172.217.221.108:465", "ssl://142.250.4.108:465", "ssl://smtp.gmail.com:465"]
-        : ["ssl://smtp.gmail.com:465", "ssl://172.217.221.108:465"];
+    $smtpIp = function_exists("udp_resolve_a") ? udp_resolve_a("smtp.gmail.com") : null;
+    $smtpTargets = array_values(array_unique(array_filter([
+        $smtpIp ? "ssl://{$smtpIp}:465" : null,
+        "ssl://172.217.221.108:465",
+        "ssl://142.250.4.108:465",
+        "ssl://smtp.gmail.com:465"
+    ])));
 
     $socket = false;
     foreach ($smtpTargets as $target) {

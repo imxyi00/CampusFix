@@ -42,9 +42,33 @@ $pass = getenv("CAMPUSFIX_DB_PASSWORD") ?: "";
 $db = trim(getenv("CAMPUSFIX_DB_NAME") ?: "campusfix");
 $port = (int)(getenv("CAMPUSFIX_DB_PORT") ?: 3306);
 
-// vercel-php's bundled glibc NSS can fail C-level getaddrinfo() on AWS Lambda; fall back to Global Accelerator IP.
-if (getenv("VERCEL") && $host === "gateway01.ap-southeast-1.prod.aws.tidbcloud.com") {
-    $host = "75.2.106.174";
+// vercel-php's bundled glibc NSS can fail C-level getaddrinfo() on AWS Lambda; resolve IPv4 directly via UDP DNS (8.8.8.8).
+function udp_resolve_a(string $host): ?string {
+    if (filter_var($host, FILTER_VALIDATE_IP)) return $host;
+    $pkt = "\x12\x34\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00";
+    foreach (explode(".", trim($host, ".")) as $lbl) $pkt .= chr(strlen($lbl)) . $lbl;
+    $pkt .= "\x00\x00\x01\x00\x01";
+    $s = @stream_socket_client("udp://8.8.8.8:53", $e, $es, 2);
+    if (!$s) return null;
+    stream_set_timeout($s, 2);
+    fwrite($s, $pkt);
+    $r = fread($s, 512);
+    fclose($s);
+    if (!$r || strlen($r) < 12) return null;
+    $ancount = unpack("n", substr($r, 6, 2))[1];
+    $pos = strlen($pkt);
+    for ($i = 0; $i < $ancount && $pos + 12 <= strlen($r); $i++) {
+        $pos += ((ord($r[$pos]) & 0xC0) === 0xC0) ? 2 : (strpos($r, "\x00", $pos) - $pos + 1);
+        $meta = unpack("ntype/nclass/Nttl/nlen", substr($r, $pos, 10));
+        $pos += 10;
+        if ($meta["type"] === 1 && $meta["len"] === 4) return inet_ntop(substr($r, $pos, 4));
+        $pos += $meta["len"];
+    }
+    return null;
+}
+
+if (getenv("VERCEL") && !filter_var($host, FILTER_VALIDATE_IP)) {
+    $host = udp_resolve_a($host) ?: ($host === "gateway01.ap-southeast-1.prod.aws.tidbcloud.com" ? "75.2.106.174" : $host);
 }
 
 try {
