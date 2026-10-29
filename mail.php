@@ -74,19 +74,21 @@ function send_campusfix_email(string $toEmail, string $toName, string $subject, 
     $smtpUser = trim(GMAIL_SMTP_EMAIL);
     $smtpPass = str_replace(" ", "", trim(GMAIL_SMTP_APP_PASSWORD));
 
-    // Always append to local dev outbox log for debugging/verification
-    $logDir = __DIR__ . DIRECTORY_SEPARATOR . "uploads";
-    if (!is_dir($logDir)) {
-        @mkdir($logDir, 0755, true);
+    // Append to local dev outbox log when filesystem is writable (skip on read-only Vercel runtime)
+    if (!getenv("VERCEL")) {
+        $logDir = __DIR__ . DIRECTORY_SEPARATOR . "uploads";
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0755, true);
+        }
+        $logEntry = sprintf(
+            "[%s] TO: %s <%s> | SUBJECT: %s\n",
+            date("Y-m-d H:i:s"),
+            $toName,
+            $toEmail,
+            $subject
+        );
+        @file_put_contents($logDir . DIRECTORY_SEPARATOR . "email_outbox.log", $logEntry, FILE_APPEND);
     }
-    $logEntry = sprintf(
-        "[%s] TO: %s <%s> | SUBJECT: %s\n",
-        date("Y-m-d H:i:s"),
-        $toName,
-        $toEmail,
-        $subject
-    );
-    @file_put_contents($logDir . DIRECTORY_SEPARATOR . "email_outbox.log", $logEntry, FILE_APPEND);
 
     if ($smtpUser === "" || $smtpPass === "") {
         error_log("CampusFix SMTP is not configured in the server environment.");
@@ -97,18 +99,28 @@ function send_campusfix_email(string $toEmail, string $toName, string $subject, 
         "ssl" => [
             "verify_peer"       => false,
             "verify_peer_name"  => false,
-            "allow_self_signed" => true
+            "allow_self_signed" => true,
+            "SNI_enabled"       => true,
+            "peer_name"         => "smtp.gmail.com"
         ]
     ]);
 
-    $socket = @stream_socket_client(
-        "ssl://smtp.gmail.com:465",
-        $errno,
-        $errstr,
-        8,
-        STREAM_CLIENT_CONNECT,
-        $context
-    );
+    $smtpTargets = getenv("VERCEL")
+        ? ["ssl://172.217.221.108:465", "ssl://142.250.4.108:465", "ssl://smtp.gmail.com:465"]
+        : ["ssl://smtp.gmail.com:465", "ssl://172.217.221.108:465"];
+
+    $socket = false;
+    foreach ($smtpTargets as $target) {
+        $socket = @stream_socket_client(
+            $target,
+            $errno,
+            $errstr,
+            8,
+            STREAM_CLIENT_CONNECT,
+            $context
+        );
+        if ($socket) break;
+    }
 
     if (!$socket) {
         error_log("CampusFix SMTP connect failed: {$errstr} ({$errno})");
