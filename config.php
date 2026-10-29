@@ -36,11 +36,16 @@ session_set_cookie_params([
     "samesite" => "Lax"
 ]);
 
-$host = getenv("CAMPUSFIX_DB_HOST") ?: "localhost";
-$user = getenv("CAMPUSFIX_DB_USER") ?: "root";
+$host = trim(getenv("CAMPUSFIX_DB_HOST") ?: "localhost");
+$user = trim(getenv("CAMPUSFIX_DB_USER") ?: "root");
 $pass = getenv("CAMPUSFIX_DB_PASSWORD") ?: "";
-$db = getenv("CAMPUSFIX_DB_NAME") ?: "campusfix";
+$db = trim(getenv("CAMPUSFIX_DB_NAME") ?: "campusfix");
 $port = (int)(getenv("CAMPUSFIX_DB_PORT") ?: 3306);
+
+// vercel-php's bundled glibc NSS can fail C-level getaddrinfo() on AWS Lambda; fall back to Global Accelerator IP.
+if (getenv("VERCEL") && $host === "gateway01.ap-southeast-1.prod.aws.tidbcloud.com") {
+    $host = "75.2.106.174";
+}
 
 try {
     $conn = mysqli_init();
